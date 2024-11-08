@@ -686,112 +686,88 @@ function addFieldsFilter() {
     }
 }
 
+/** Create and show a tooltip
+ * @param {HTMLElement} element - The element to attach the tooltip to
+ * @param {string} text - The text content of the tooltip */
+function showTooltip(element, text) {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'field-tooltip';
+    tooltip.textContent = text;
+    tooltip.style.position = 'absolute';
+    tooltip.style.background = '#333';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '2px 5px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.zIndex = '1000';
+
+    const rect = element.getBoundingClientRect();
+    tooltip.style.top = `${rect.top + window.scrollY - 25}px`;
+    tooltip.style.left = `${rect.left + window.scrollX}px`;
+
+    document.body.appendChild(tooltip);
+    element.tooltipElement = tooltip; // Store reference for removal later
+}
+
+/** Hide and remove the tooltip
+ * @param {HTMLElement} element - The element to remove the tooltip from */
+function hideTooltip(element) {
+    if (element.tooltipElement) {
+        element.tooltipElement.remove();
+        element.tooltipElement = null; // Clear the reference
+    }
+}
+
 function addFieldIdTooltip() {
     const overlays = document.querySelectorAll('.overlay');
 
     overlays.forEach(overlay => {
-        // Event listener to show tooltip on hover
         overlay.addEventListener('mouseenter', function() {
-            // Check if tooltip already exists for this overlay
             if (!overlay.tooltipElement) {
                 const itemWrapper = overlay.closest('.item-wrapper');
                 let fieldId = null;
 
-                // Check if the item has an input, select, or textarea with id or name that starts with "field_"
                 const inputField = itemWrapper ? itemWrapper.querySelector('input, select, textarea') : null;
                 if (inputField) {
-                    // Check id or name directly if it starts with "field_"
-                    if (inputField.id && inputField.id.startsWith('field_')) {
-                        fieldId = inputField.id;
-                    } else if (inputField.name && inputField.name.startsWith('field_')) {
-                        fieldId = inputField.name;
-                    }
+                    fieldId = inputField.id?.startsWith('field_') ? inputField.id : inputField.name?.startsWith('field_') ? inputField.name : null;
                 }
 
-                // Special check for First and Last Name fields where hidden input has the field ID
                 if (!fieldId && itemWrapper) {
                     const hiddenInput = itemWrapper.querySelector('input[type="hidden"]');
-                    if (hiddenInput && hiddenInput.value && hiddenInput.value.startsWith('field_')) {
+                    if (hiddenInput?.value?.startsWith('field_')) {
                         fieldId = hiddenInput.value;
                     }
                 }
 
-                // Only show tooltip if a valid field ID was found
                 if (fieldId) {
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'field-tooltip';
-                    tooltip.textContent = fieldId;
-                    tooltip.style.position = 'absolute';
-                    tooltip.style.background = '#333';
-                    tooltip.style.color = '#fff';
-                    tooltip.style.padding = '2px 5px';
-                    tooltip.style.borderRadius = '4px';
-                    tooltip.style.fontSize = '12px';
-
-                    // Position the tooltip relative to the overlay
-                    const rect = overlay.getBoundingClientRect();
-                    tooltip.style.top = `${rect.top + window.scrollY}px`;
-                    tooltip.style.left = `${rect.left + window.scrollX}px`;
-                    tooltip.style.zIndex = '1000';
-
-                    document.body.appendChild(tooltip);
-                    overlay.tooltipElement = tooltip; // Store reference for removal later
+                    showTooltip(overlay, fieldId);
                 }
             }
         });
 
-        // Event listener to hide tooltip when leaving the element
         overlay.addEventListener('mouseleave', function() {
-            if (overlay.tooltipElement) {
-                overlay.tooltipElement.remove();
-                overlay.tooltipElement = null; // Clear the reference
-            }
+            hideTooltip(overlay);
         });
     });
 }
 
 function addTableHeaderTooltip() {
-    // Select all <th> elements that contain an <a> with the specified data-cy format
     const headers = document.querySelectorAll('th');
 
     headers.forEach(header => {
         const link = header.querySelector('a[data-cy^="column-header-field_"]');
 
-        // Check if the <a> tag with the desired data-cy attribute exists
         if (link) {
             const fieldId = link.getAttribute('data-cy').split('column-header-')[1];
 
-            // Event listener to show tooltip on hover
             header.addEventListener('mouseenter', function() {
-                // Check if tooltip already exists for this header
                 if (!header.tooltipElement) {
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'field-tooltip';
-                    tooltip.textContent = fieldId;
-                    tooltip.style.position = 'absolute';
-                    tooltip.style.background = '#333';
-                    tooltip.style.color = '#fff';
-                    tooltip.style.padding = '2px 5px';
-                    tooltip.style.borderRadius = '4px';
-                    tooltip.style.fontSize = '12px';
-
-                    // Position the tooltip relative to the <th> element
-                    const rect = header.getBoundingClientRect();
-                    tooltip.style.top = `${rect.top + window.scrollY - 25}px`;
-                    tooltip.style.left = `${rect.left + window.scrollX}px`;
-                    tooltip.style.zIndex = '1000';
-
-                    document.body.appendChild(tooltip);
-                    header.tooltipElement = tooltip; // Store reference for removal later
+                    showTooltip(header, fieldId);
                 }
             });
 
-            // Event listener to hide tooltip when leaving the element
             header.addEventListener('mouseleave', function() {
-                if (header.tooltipElement) {
-                    header.tooltipElement.remove();
-                    header.tooltipElement = null; // Clear the reference
-                }
+                hideTooltip(header);
             });
         }
     });
