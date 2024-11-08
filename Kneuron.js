@@ -693,8 +693,8 @@ function addFieldIdTooltip() {
                 const itemWrapper = overlay.closest('.item-wrapper');
                 let fieldId = null;
 
-                // Check if the item has an input or select with id or name that starts with "field_"
-                const inputField = itemWrapper ? itemWrapper.querySelector('input, select') : null;
+                // Check if the item has an input, select, or textarea with id or name that starts with "field_"
+                const inputField = itemWrapper ? itemWrapper.querySelector('input, select, textarea') : null;
                 if (inputField) {
                     // Check id or name directly if it starts with "field_"
                     if (inputField.id && inputField.id.startsWith('field_')) {
