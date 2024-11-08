@@ -63,6 +63,10 @@ const genericObserver = new MutationObserver((mutations) => {
                 addFieldIdTooltip();
             }
 
+            if (mutation.target.querySelector('#kn-records-table table thead tr th a')) {
+                addTableHeaderTooltip();
+            }
+
             if (mutation.target.querySelector('.kn-search-list-wrapper:not(.reduce-processed)')) {
                 reduceLists('.kn-search-list-wrapper');
             }
@@ -743,5 +747,52 @@ function addFieldIdTooltip() {
                 overlay.tooltipElement = null; // Clear the reference
             }
         });
+    });
+}
+
+function addTableHeaderTooltip() {
+    // Select all <th> elements that contain an <a> with the specified data-cy format
+    const headers = document.querySelectorAll('th');
+
+    headers.forEach(header => {
+        const link = header.querySelector('a[data-cy^="column-header-field_"]');
+
+        // Check if the <a> tag with the desired data-cy attribute exists
+        if (link) {
+            const fieldId = link.getAttribute('data-cy').split('column-header-')[1];
+
+            // Event listener to show tooltip on hover
+            header.addEventListener('mouseenter', function() {
+                // Check if tooltip already exists for this header
+                if (!header.tooltipElement) {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'field-tooltip';
+                    tooltip.textContent = fieldId;
+                    tooltip.style.position = 'absolute';
+                    tooltip.style.background = '#333';
+                    tooltip.style.color = '#fff';
+                    tooltip.style.padding = '2px 5px';
+                    tooltip.style.borderRadius = '4px';
+                    tooltip.style.fontSize = '12px';
+
+                    // Position the tooltip relative to the <th> element
+                    const rect = header.getBoundingClientRect();
+                    tooltip.style.top = `${rect.top + window.scrollY - 25}px`;
+                    tooltip.style.left = `${rect.left + window.scrollX}px`;
+                    tooltip.style.zIndex = '1000';
+
+                    document.body.appendChild(tooltip);
+                    header.tooltipElement = tooltip; // Store reference for removal later
+                }
+            });
+
+            // Event listener to hide tooltip when leaving the element
+            header.addEventListener('mouseleave', function() {
+                if (header.tooltipElement) {
+                    header.tooltipElement.remove();
+                    header.tooltipElement = null; // Clear the reference
+                }
+            });
+        }
     });
 }
