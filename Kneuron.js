@@ -59,6 +59,10 @@ const genericObserver = new MutationObserver((mutations) => {
                 reduceLists('.kn-list-items');
             }
 
+            if (mutation.target.querySelector('#page-views .kn-form .item-wrapper .kn-item')) {
+                addFieldIdTooltip();
+            }
+
             if (mutation.target.querySelector('.kn-search-list-wrapper:not(.reduce-processed)')) {
                 reduceLists('.kn-search-list-wrapper');
             }
@@ -676,4 +680,68 @@ function addFieldsFilter() {
 
         return isMatch;
     }
+}
+
+function addFieldIdTooltip() {
+    const overlays = document.querySelectorAll('.overlay');
+
+    overlays.forEach(overlay => {
+        // Event listener to show tooltip on hover
+        overlay.addEventListener('mouseenter', function() {
+            // Check if tooltip already exists for this overlay
+            if (!overlay.tooltipElement) {
+                const itemWrapper = overlay.closest('.item-wrapper');
+                let fieldId = null;
+
+                // Check if the item has an input or select with id or name that starts with "field_"
+                const inputField = itemWrapper ? itemWrapper.querySelector('input, select') : null;
+                if (inputField) {
+                    // Check id or name directly if it starts with "field_"
+                    if (inputField.id && inputField.id.startsWith('field_')) {
+                        fieldId = inputField.id;
+                    } else if (inputField.name && inputField.name.startsWith('field_')) {
+                        fieldId = inputField.name;
+                    }
+                }
+
+                // Special check for First and Last Name fields where hidden input has the field ID
+                if (!fieldId && itemWrapper) {
+                    const hiddenInput = itemWrapper.querySelector('input[type="hidden"]');
+                    if (hiddenInput && hiddenInput.value && hiddenInput.value.startsWith('field_')) {
+                        fieldId = hiddenInput.value;
+                    }
+                }
+
+                // Only show tooltip if a valid field ID was found
+                if (fieldId) {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'field-tooltip';
+                    tooltip.textContent = fieldId;
+                    tooltip.style.position = 'absolute';
+                    tooltip.style.background = '#333';
+                    tooltip.style.color = '#fff';
+                    tooltip.style.padding = '2px 5px';
+                    tooltip.style.borderRadius = '4px';
+                    tooltip.style.fontSize = '12px';
+
+                    // Position the tooltip relative to the overlay
+                    const rect = overlay.getBoundingClientRect();
+                    tooltip.style.top = `${rect.top + window.scrollY}px`;
+                    tooltip.style.left = `${rect.left + window.scrollX}px`;
+                    tooltip.style.zIndex = '1000';
+
+                    document.body.appendChild(tooltip);
+                    overlay.tooltipElement = tooltip; // Store reference for removal later
+                }
+            }
+        });
+
+        // Event listener to hide tooltip when leaving the element
+        overlay.addEventListener('mouseleave', function() {
+            if (overlay.tooltipElement) {
+                overlay.tooltipElement.remove();
+                overlay.tooltipElement = null; // Clear the reference
+            }
+        });
+    });
 }
