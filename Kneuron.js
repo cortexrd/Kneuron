@@ -28,8 +28,7 @@ const css = `
 }
 
 #pages-toolbox form > div .redactor-editor {
-   max-height: 30em;
-   height: 30em;
+   min-height: 30em;
 }
 
 #objects-nav .vue-recycle-scroller__item-view {
