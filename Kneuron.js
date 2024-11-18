@@ -178,9 +178,14 @@ document.addEventListener('keydown', async function (event) {
     let keyPressed = event.code;
 
     if (keyPressed === 'Enter') {
+        if (document.querySelector('.multiselect--active')) //Allow Enter in a dropdown.
+            return;
+
         element = document.querySelector('[data-cy=confirm]')
+            || document.querySelector('[data-cy=save-filters]')
+            || document.querySelector('[data-cy=save]')
+            || document.querySelector('[data-cy=save-view-add]')
             || document.querySelector('a.save')
-            || document.querySelector('.kn-submit button')
             || document.querySelector('.kn-input[type=submit]');
 
         //If on a multi-line object...
