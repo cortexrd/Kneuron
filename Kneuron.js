@@ -548,12 +548,13 @@ function addPagesFilter() {
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'Filter pages...';
-        searchInput.style.marginLeft = '30px';
+        searchInput.style.marginLeft = '10px';
         searchInput.style.padding = '2px 5px';
         searchInput.style.fontSize = '14px';
         searchInput.style.borderRadius = '4px';
         searchInput.style.border = '1px solid #ccc';
         searchInput.style.height = '35px';
+        searchInput.style.width = '110px';
         searchInput.id = 'incremental-filter-pages';
 
         searchInput.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -662,6 +663,7 @@ function addFieldsFilter() {
     searchInput.style.borderRadius = '4px';
     searchInput.style.border = '1px solid #ccc';
     searchInput.style.height = '35px';
+    searchInput.style.width = '140px';
     searchInput.id = 'incremental-filter-fields';
     searchInput.classList.add('filter-input');
 
