@@ -403,11 +403,32 @@ function addTablesFilter() {
         searchInput.style.height = '35px';
         searchInput.style.width = '140px';
         searchInput.id = 'incremental-filter-tables';
+
+        let currentFocusIndex = 0; 
+        let currentSelectionIndex = -1; 
+        let searchEmpty = true;
+
+        searchInput.addEventListener('focus', (e) => {
+            const filteredListItems = getFilteredListItems(searchEmpty);
+            updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems)
+        });
+
         searchInput.addEventListener('input', (e) => {
             document.querySelector('.left-toolbox').scrollTop = 0;
             const hasMatches = filterListItems(e.target.value);
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
+
+            if (e.target.value === "") {
+                searchEmpty = true;
+            } else {
+                searchEmpty = false;
+            }
+
+            currentFocusIndex = 0; 
+            const filteredListItems = getFilteredListItems(searchEmpty);
+            updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
         });
+
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 searchInput.value = '';
@@ -415,7 +436,66 @@ function addTablesFilter() {
                 searchInput.blur();
                 searchInput.style.backgroundColor = 'white';
             }
+            else if (e.key === 'Tab') {
+                e.preventDefault(); // Prevent default tab behavior
+
+                const filteredListItems = getFilteredListItems(searchEmpty);
+
+                if (filteredListItems.length === 0) return;
+
+                // Update focus index
+                currentFocusIndex = (currentFocusIndex + 1) % (filteredListItems.length - 2);
+                updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+
+            } else if (e.key === 'Enter' && currentFocusIndex >= 0) {
+                const filteredListItems = getFilteredListItems(searchEmpty);
+
+                filteredListItems[currentFocusIndex]?.click();
+                currentSelectionIndex = currentFocusIndex; 
+                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+            } else if (e.key === 'ArrowUp' && currentFocusIndex >= 0) {
+                e.preventDefault();
+                const filteredListItems = getFilteredListItems(searchEmpty);
+                currentFocusIndex = currentFocusIndex - 1;
+                if (currentFocusIndex < 0) {
+                    currentFocusIndex = filteredListItems.length - 3; // Wrap to the last index
+                }
+
+                filteredListItems[currentFocusIndex]?.click();
+                currentSelectionIndex = currentFocusIndex;
+                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+            } else if (e.key === 'ArrowDown' && currentFocusIndex >= 0) {
+                e.preventDefault();
+                const filteredListItems = getFilteredListItems(searchEmpty);
+                currentFocusIndex = (currentFocusIndex + 1) % (filteredListItems.length - 2);
+
+                filteredListItems[currentFocusIndex]?.click();
+                currentSelectionIndex = currentFocusIndex;
+                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                const filteredListItems = getFilteredListItems(searchEmpty);
+                currentFocusIndex = 0;
+                filteredListItems[currentFocusIndex]?.click();
+                currentSelectionIndex = currentFocusIndex; 
+                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                const filteredListItems = getFilteredListItems(searchEmpty);
+                currentFocusIndex = filteredListItems.length - 2;
+                filteredListItems[currentFocusIndex]?.click();
+                currentSelectionIndex = currentFocusIndex; 
+                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+
+            }
         });
+
+        searchInput.addEventListener('blur', (e) => {
+            const filteredListItems = getFilteredListItems(searchEmpty);
+            updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+        });
+
         tablesTitle.appendChild(searchInput);
     }
 
@@ -775,4 +855,37 @@ function toggleDividerMinMax() {
 
         divider.dispatchEvent(dblClickEvent);
     }
+}
+
+function getFilteredListItems(searchEmpty) {
+    let filteredListItems;
+    if (searchEmpty) {
+        filteredListItems = Array.from(
+            document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item')
+        )
+    } else {
+        filteredListItems = Array.from(
+            document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item')
+        ).filter(item => getComputedStyle(item).display === 'block');
+    }
+    return filteredListItems;
+}
+
+function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems) {
+    // Reset all focus styles
+    filteredListItems.forEach((item, index) => {
+        const anchor = item.querySelector('a'); // Select the <a> inside the <li>
+            // Remove highlight styles from the <a>
+            anchor.style.removeProperty('--tw-bg-opacity');
+            anchor.style.removeProperty('background-color');
+    });
+
+    // Apply styles to current selection
+    if (currentSelectionIndex === currentFocusIndex) return;
+
+    const anchor = filteredListItems[currentFocusIndex]?.querySelector('a');
+    if (!anchor) return;
+
+    anchor.style.setProperty('--tw-bg-opacity', '1', 'important');
+    anchor.style.setProperty('background-color', 'rgba(251, 239, 249, 1)', 'important');
 }
