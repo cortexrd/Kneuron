@@ -101,15 +101,15 @@ const genericObserver = new MutationObserver((mutations) => {
             }
 
             if (mutation.target.querySelector('.vue-recycle-scroller__item-view .nav-item:not(:has(.idTextStyle))')) {
-                addObjectIDs();
+                addIDsToElements('.vue-recycle-scroller__item-view .nav-item', 'id', '.label, .transition');
             }
 
             if (mutation.target.querySelector('.page-list-sortable .nav-item:not(:has(.idTextStyle))')) {
-                addSceneIDs();
+                addIDsToElements('.page-list-sortable .nav-item', 'data-key', '.name span');
             }
 
             if (mutation.target.querySelector('.view[data-view-key]:not(:has(.idTextStyle))')) {
-                addViewIDs();
+                addIDsToElements('.view[data-view-key]', 'data-view-key', 'h2');
             }
         }
     });
@@ -404,94 +404,79 @@ function addTablesFilter() {
         searchInput.style.width = '140px';
         searchInput.id = 'incremental-filter-tables';
 
-        let currentFocusIndex = 0; 
-        let currentSelectionIndex = -1; 
+        let currentFocusIndex = 0;
+        let currentSelectionIndex = -1;
         let searchEmpty = true;
+        let tableScroller;
 
-        searchInput.addEventListener('focus', (e) => {
+        searchInput.addEventListener('focus', () => {
             const filteredListItems = getFilteredListItems(searchEmpty);
-            updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems)
+            updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
         });
 
         searchInput.addEventListener('input', (e) => {
             document.querySelector('.left-toolbox').scrollTop = 0;
+            tableScroller = document.querySelector('.vue-recycle-scroller');
+
             const hasMatches = filterListItems(e.target.value);
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
 
-            if (e.target.value === "") {
-                searchEmpty = true;
-            } else {
-                searchEmpty = false;
-            }
+            searchEmpty = e.target.value === "";
+            tableScroller.style.height = searchEmpty ? 'unset' : '40%';
 
-            currentFocusIndex = 0; 
+            currentFocusIndex = 0;
             const filteredListItems = getFilteredListItems(searchEmpty);
             updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
         });
 
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                searchInput.value = '';
-                filterListItems('');
-                searchInput.blur();
-                searchInput.style.backgroundColor = 'white';
-            }
-            else if (e.key === 'Tab') {
-                e.preventDefault(); // Prevent default tab behavior
+            const filteredListItems = getFilteredListItems(searchEmpty);
 
-                const filteredListItems = getFilteredListItems(searchEmpty);
-
-                if (filteredListItems.length === 0) return;
-
-                // Update focus index
-                currentFocusIndex = (currentFocusIndex + 1) % (filteredListItems.length - 2);
-                updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-
-            } else if (e.key === 'Enter' && currentFocusIndex >= 0) {
-                const filteredListItems = getFilteredListItems(searchEmpty);
-
-                filteredListItems[currentFocusIndex]?.click();
-                currentSelectionIndex = currentFocusIndex; 
-                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-            } else if (e.key === 'ArrowUp' && currentFocusIndex >= 0) {
-                e.preventDefault();
-                const filteredListItems = getFilteredListItems(searchEmpty);
-                currentFocusIndex = currentFocusIndex - 1;
-                if (currentFocusIndex < 0) {
-                    currentFocusIndex = filteredListItems.length - 3; // Wrap to the last index
-                }
-
-                filteredListItems[currentFocusIndex]?.click();
-                currentSelectionIndex = currentFocusIndex;
-                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-            } else if (e.key === 'ArrowDown' && currentFocusIndex >= 0) {
-                e.preventDefault();
-                const filteredListItems = getFilteredListItems(searchEmpty);
-                currentFocusIndex = (currentFocusIndex + 1) % (filteredListItems.length - 2);
-
-                filteredListItems[currentFocusIndex]?.click();
-                currentSelectionIndex = currentFocusIndex;
-                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-            } else if (e.key === 'Home') {
-                e.preventDefault();
-                const filteredListItems = getFilteredListItems(searchEmpty);
-                currentFocusIndex = 0;
-                filteredListItems[currentFocusIndex]?.click();
-                currentSelectionIndex = currentFocusIndex; 
-                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-
-            } else if (e.key === 'End') {
-                e.preventDefault();
-                const filteredListItems = getFilteredListItems(searchEmpty);
-                currentFocusIndex = filteredListItems.length - 2;
-                filteredListItems[currentFocusIndex]?.click();
-                currentSelectionIndex = currentFocusIndex; 
-                updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-
+            switch (e.key) {
+                case 'Escape':
+                    searchInput.value = '';
+                    filterListItems('');
+                    searchInput.blur();
+                    searchInput.style.backgroundColor = 'white';
+                    tableScroller.style.height = 'unset';
+                    break;
+                case 'Tab':
+                    e.preventDefault();
+                    if (filteredListItems.length === 0) return;
+                    currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
+                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+                    break;
+                case 'Enter':
+                    if (currentFocusIndex >= 0) {
+                        filteredListItems[currentFocusIndex]?.click();
+                        currentSelectionIndex = currentFocusIndex;
+                        updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+                    }
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    currentFocusIndex = (currentFocusIndex - 1 + filteredListItems.length) % filteredListItems.length;
+                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
+                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    currentFocusIndex = 0;
+                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    currentFocusIndex = filteredListItems.length - 1;
+                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+                    break;
             }
         });
 
-        searchInput.addEventListener('blur', (e) => {
+        searchInput.addEventListener('blur', () => {
             const filteredListItems = getFilteredListItems(searchEmpty);
             updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
         });
@@ -811,35 +796,17 @@ function addFieldsFilter() {
     }
 }
 
-async function addObjectIDs() {
-    const elements = document.querySelectorAll('.vue-recycle-scroller__item-view .nav-item:not(:has(.idTextStyle))');
-    elements.forEach(function (element) {
-        const objectTextLabel = element.querySelector('.label') || element.querySelector('.transition');
-        const objectId = element.id.match(/object_(\d+)/);
-        if (objectId && objectTextLabel) {
-            objectTextLabel.innerHTML += ` <span class=idTextStyle>  ${objectId[0]}</span>`;
+function addIDsToElements(elementSelector, idAttribute, textSelector) {
+    const elements = document.querySelectorAll(`${elementSelector}:not(:has(.idTextStyle))`);
+    elements.forEach(element => {
+        let id = element.getAttribute(idAttribute) || element.id.match(/object_\d+/)?.[0];
+        if (id) {
+            // Ensure the ID is in the correct format
+            id = id.replace(/.*object_(\d+).*/, 'object_$1');
         }
-    });
-}
-
-function addSceneIDs() {
-    const elements = document.querySelectorAll('.page-list-sortable .nav-item:not(:has(.idTextStyle))');
-    elements.forEach(function (element) {
-        const sceneId = element.getAttribute('data-key');
-        const menuTextElement = element.querySelector('.name span');
-        if (sceneId && menuTextElement) {
-            menuTextElement.innerHTML += ` <span class=idTextStyle>  ${sceneId}</span>`;
-        }
-    });
-}
-
-function addViewIDs() {
-    const elements = document.querySelectorAll('.view[data-view-key]:not(:has(.idTextStyle))');
-    elements.forEach(function (element) {
-        const viewId = element.getAttribute('data-view-key');
-        const viewTitle = element.querySelector('h2');
-        if (viewId && viewTitle && !element.querySelector('.idTextStyle')) {
-            viewTitle.innerHTML += ` <span class=idTextStyle>  ${viewId}</span>`;
+        const textElement = element.querySelector(textSelector);
+        if (id && textElement) {
+            textElement.innerHTML += ` <span class="idTextStyle">${id}</span>`;
         }
     });
 }
@@ -858,26 +825,17 @@ function toggleDividerMinMax() {
 }
 
 function getFilteredListItems(searchEmpty) {
-    let filteredListItems;
-    if (searchEmpty) {
-        filteredListItems = Array.from(
-            document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item')
-        )
-    } else {
-        filteredListItems = Array.from(
-            document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item')
-        ).filter(item => getComputedStyle(item).display === 'block');
-    }
-    return filteredListItems;
+    const listItems = Array.from(document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item'));
+    return searchEmpty ? listItems : listItems.filter(item => getComputedStyle(item).display === 'block');
 }
 
 function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems) {
     // Reset all focus styles
     filteredListItems.forEach((item, index) => {
         const anchor = item.querySelector('a'); // Select the <a> inside the <li>
-            // Remove highlight styles from the <a>
-            anchor.style.removeProperty('--tw-bg-opacity');
-            anchor.style.removeProperty('background-color');
+        // Remove highlight styles from the <a>
+        anchor.style.removeProperty('--tw-bg-opacity');
+        anchor.style.removeProperty('background-color');
     });
 
     // Apply styles to current selection
