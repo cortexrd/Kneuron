@@ -55,6 +55,22 @@ const css = `
     white-space: pre;
     font-family: Inter,sans-serif;
 }
+
+.monaco-list .monaco-list-rows {
+  background-color: #a7a7b5 !important;
+}
+
+.monaco-list-row:hover:not(.selected):not(.focused) {
+  background-color: #babac5 !important;
+}
+
+.quick-input-list .monaco-keybinding > .monaco-keybinding-key {
+  color: black !important;
+}
+
+.monaco-list-row.focused {
+  background-color: #96b6cb !important;
+}
 `;
 injectCSS(css);
 
