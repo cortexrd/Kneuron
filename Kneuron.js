@@ -57,19 +57,19 @@ const css = `
 }
 
 .monaco-list .monaco-list-rows {
-  background-color: #a7a7b5 !important;
+  background-color: #efeaed !important;
 }
 
 .monaco-list-row:hover:not(.selected):not(.focused) {
-  background-color: #babac5 !important;
+  background-color: #fff5fa !important;
+}
+
+.monaco-list-row.focused {
+  background-color: #edd5e1 !important;
 }
 
 .quick-input-list .monaco-keybinding > .monaco-keybinding-key {
   color: black !important;
-}
-
-.monaco-list-row.focused {
-  background-color: #96b6cb !important;
 }
 `;
 injectCSS(css);
