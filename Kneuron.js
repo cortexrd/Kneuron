@@ -438,7 +438,8 @@ function addTablesFilter() {
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
 
             searchEmpty = e.target.value === "";
-            tableScroller.style.height = searchEmpty ? 'unset' : '40%';
+            tableScroller.style.height = searchEmpty ? 'unset' : '60%';
+            tableScroller.style.overflow = searchEmpty ? 'unset' : 'visible';
 
             currentFocusIndex = 0;
             const filteredListItems = getFilteredListItems(searchEmpty);
