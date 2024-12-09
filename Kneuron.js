@@ -438,8 +438,8 @@ function addTablesFilter() {
             const filteredListItems = getFilteredListItems(searchEmpty);
 
             // Calculate height dynamically based on items
-            const itemHeight = 42; // Assuming each item has a fixed height of 40px
-            const calculatedHeight = Math.min(filteredListItems.length * itemHeight);
+            const itemHeight = 42;
+            const calculatedHeight = filteredListItems.length * itemHeight;
 
             // Adjust scroller styles
             tableScroller.style.height = searchEmpty ? 'unset' : `${calculatedHeight}px`;
