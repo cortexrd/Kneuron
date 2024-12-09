@@ -435,12 +435,20 @@ function addTablesFilter() {
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
 
             searchEmpty = e.target.value === "";
-            tableScroller.style.height = searchEmpty ? 'unset' : '40%';
+            const filteredListItems = getFilteredListItems(searchEmpty);
+
+            // Calculate height dynamically based on items
+            const itemHeight = 42;
+            const calculatedHeight = filteredListItems.length * itemHeight;
+
+            // Adjust scroller styles
+            tableScroller.style.height = searchEmpty ? 'unset' : `${calculatedHeight}px`;
+            tableScroller.style.overflow = searchEmpty ? 'unset' : 'hidden';
 
             currentFocusIndex = 0;
-            const filteredListItems = getFilteredListItems(searchEmpty);
             updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
         });
+
 
         searchInput.addEventListener('keydown', (e) => {
             const filteredListItems = getFilteredListItems(searchEmpty);
