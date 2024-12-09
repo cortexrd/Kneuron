@@ -206,7 +206,7 @@ document.addEventListener('keydown', async function (event) {
         event.code.startsWith('Digit') &&
         event.code.replace('Digit', '') >= 1 &&
         event.code.replace('Digit', '') <= 5) {
-        if ((activeElement.tagName === 'INPUT' && !activeElement.id.startsWith('incremental-filter') && activeElement !== knackSearch) ||
+        if ((activeElement.tagName === 'INPUT' && !activeElement.id.startsWith('incremental-filter-') && activeElement !== knackSearch) ||
             activeElement.tagName === 'TEXTAREA' ||
             activeElement.isContentEditable) {
             return; // Exit early, allowing default Alt+number behavior
@@ -303,7 +303,7 @@ document.addEventListener('keydown', async function (event) {
             if (activeElement === document.querySelector('#incremental-filter-tables')) {
                 element = knackSearch;
             } else {
-                element = document.querySelector('[id^=incremental-filter]')
+                element = document.querySelector('[id^=incremental-filter-]')
                     || document.querySelector('.is-active a.settings')
                     || document.querySelector('a.save')
                     || document.querySelector('input[type="search"]');
@@ -458,51 +458,6 @@ function addTablesFilter() {
                 onFocusChange: updateListItemFocusStyles,
                 tableScroller
             });
-
-            //const filteredListItems = getFilteredListItems(searchEmpty);
-
-            //switch (e.key) {
-            //    case 'Escape':
-            //        searchInput.value = '';
-            //        filterListItems('');
-            //        searchInput.blur();
-            //        searchInput.style.backgroundColor = 'white';
-            //        tableScroller.style.height = 'unset';
-            //        break;
-            //    case 'Tab':
-            //        e.preventDefault();
-            //        if (filteredListItems.length === 0) return;
-            //        currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
-            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-            //        break;
-            //    case 'Enter':
-            //        if (currentFocusIndex >= 0) {
-            //            filteredListItems[currentFocusIndex]?.click();
-            //            currentSelectionIndex = currentFocusIndex;
-            //            updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-            //        }
-            //        break;
-            //    case 'ArrowUp':
-            //        e.preventDefault();
-            //        currentFocusIndex = (currentFocusIndex - 1 + filteredListItems.length) % filteredListItems.length;
-            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-            //        break;
-            //    case 'ArrowDown':
-            //        e.preventDefault();
-            //        currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
-            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-            //        break;
-            //    case 'Home':
-            //        e.preventDefault();
-            //        currentFocusIndex = 0;
-            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-            //        break;
-            //    case 'End':
-            //        e.preventDefault();
-            //        currentFocusIndex = filteredListItems.length - 1;
-            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-            //        break;
-            //}
         });
 
         searchInput.addEventListener('blur', () => {
@@ -573,14 +528,6 @@ function addMoveCopyViewFilter() {
             handleFilterKeydown(e, {
                 resultsPopup
             });
-
-        //    if (e.key === 'Escape') {
-        //        searchInput.value = '';
-        //        filterOptions('');
-        //        searchInput.blur();
-        //        searchInput.style.backgroundColor = 'white';
-        //        resultsPopup.style.display = 'none';
-        //    }
         });
 
         const container = document.createElement('div');
@@ -663,13 +610,6 @@ function addPagesFilter() {
         });
         searchInput.addEventListener('keydown', (e) => {
             handleFilterKeydown(e);
-
-        //    if (e.key === 'Escape') {
-        //        searchInput.value = '';
-        //        filterPages('');
-        //        searchInput.blur();
-        //        searchInput.style.backgroundColor = 'white';
-        //    }
         });
 
         filterTitle.appendChild(searchInput);
@@ -776,13 +716,6 @@ function addFieldsFilter() {
 
     searchInput.addEventListener('keydown', (e) => {
         handleFilterKeydown(e);
-
-        //if (e.key === 'Escape') {
-        //    searchInput.value = '';
-        //    filterListItems('');
-        //    searchInput.blur();
-        //    searchInput.style.backgroundColor = 'white';
-        //}
     });
 
     fieldTabs.appendChild(searchInput);
@@ -899,7 +832,7 @@ function handleFilterKeydown(e, options = {}) {
     } = options;
 
     // For Home/End keys - allow default behavior when focused on input field
-    if (e.key === 'Home' || e.key === 'End') {
+    if ((e.key === 'Home' || e.key === 'End') && e.target.id.startsWith('incremental-filter-')) {
         return currentFocusIndex;
     }
 
