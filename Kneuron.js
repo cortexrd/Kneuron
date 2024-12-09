@@ -56,20 +56,17 @@ const css = `
     font-family: Inter,sans-serif;
 }
 
-.monaco-list .monaco-list-rows {
+.monaco-list:not(.equation-editor .monaco-list) .monaco-list-rows {
   background-color: #efeaed !important;
 }
-
-.monaco-list-row:hover:not(.selected):not(.focused) {
-  background-color: #fff5fa !important;
+.monaco-list:not(.equation-editor .monaco-list) .monaco-list-row:hover:not(.selected):not(.focused) {
+ background-color: #fff5fa !important;
 }
-
-.monaco-list-row.focused {
-  background-color: #edd5e1 !important;
+.monaco-list:not(.equation-editor .monaco-list) .monaco-list-row.focused {
+ background-color: #edd5e1 !important;
 }
-
 .quick-input-list .monaco-keybinding > .monaco-keybinding-key {
-  color: black !important;
+ color: black !important;
 }
 `;
 injectCSS(css);
