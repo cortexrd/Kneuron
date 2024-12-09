@@ -449,52 +449,60 @@ function addTablesFilter() {
             updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
         });
 
-
         searchInput.addEventListener('keydown', (e) => {
             const filteredListItems = getFilteredListItems(searchEmpty);
+            currentFocusIndex = handleFilterKeydown(e, {
+                filteredListItems,
+                currentFocusIndex,
+                currentSelectionIndex,
+                onFocusChange: updateListItemFocusStyles,
+                tableScroller
+            });
 
-            switch (e.key) {
-                case 'Escape':
-                    searchInput.value = '';
-                    filterListItems('');
-                    searchInput.blur();
-                    searchInput.style.backgroundColor = 'white';
-                    tableScroller.style.height = 'unset';
-                    break;
-                case 'Tab':
-                    e.preventDefault();
-                    if (filteredListItems.length === 0) return;
-                    currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
-                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-                    break;
-                case 'Enter':
-                    if (currentFocusIndex >= 0) {
-                        filteredListItems[currentFocusIndex]?.click();
-                        currentSelectionIndex = currentFocusIndex;
-                        updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
-                    }
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    currentFocusIndex = (currentFocusIndex - 1 + filteredListItems.length) % filteredListItems.length;
-                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
-                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-                    break;
-                case 'Home':
-                    e.preventDefault();
-                    currentFocusIndex = 0;
-                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-                    break;
-                case 'End':
-                    e.preventDefault();
-                    currentFocusIndex = filteredListItems.length - 1;
-                    updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
-                    break;
-            }
+            //const filteredListItems = getFilteredListItems(searchEmpty);
+
+            //switch (e.key) {
+            //    case 'Escape':
+            //        searchInput.value = '';
+            //        filterListItems('');
+            //        searchInput.blur();
+            //        searchInput.style.backgroundColor = 'white';
+            //        tableScroller.style.height = 'unset';
+            //        break;
+            //    case 'Tab':
+            //        e.preventDefault();
+            //        if (filteredListItems.length === 0) return;
+            //        currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
+            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+            //        break;
+            //    case 'Enter':
+            //        if (currentFocusIndex >= 0) {
+            //            filteredListItems[currentFocusIndex]?.click();
+            //            currentSelectionIndex = currentFocusIndex;
+            //            updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
+            //        }
+            //        break;
+            //    case 'ArrowUp':
+            //        e.preventDefault();
+            //        currentFocusIndex = (currentFocusIndex - 1 + filteredListItems.length) % filteredListItems.length;
+            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+            //        break;
+            //    case 'ArrowDown':
+            //        e.preventDefault();
+            //        currentFocusIndex = (currentFocusIndex + 1) % filteredListItems.length;
+            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+            //        break;
+            //    case 'Home':
+            //        e.preventDefault();
+            //        currentFocusIndex = 0;
+            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+            //        break;
+            //    case 'End':
+            //        e.preventDefault();
+            //        currentFocusIndex = filteredListItems.length - 1;
+            //        updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, filteredListItems);
+            //        break;
+            //}
         });
 
         searchInput.addEventListener('blur', () => {
@@ -562,13 +570,17 @@ function addMoveCopyViewFilter() {
         });
 
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                searchInput.value = '';
-                filterOptions('');
-                searchInput.blur();
-                searchInput.style.backgroundColor = 'white';
-                resultsPopup.style.display = 'none';
-            }
+            handleFilterKeydown(e, {
+                resultsPopup
+            });
+
+        //    if (e.key === 'Escape') {
+        //        searchInput.value = '';
+        //        filterOptions('');
+        //        searchInput.blur();
+        //        searchInput.style.backgroundColor = 'white';
+        //        resultsPopup.style.display = 'none';
+        //    }
         });
 
         const container = document.createElement('div');
@@ -650,13 +662,16 @@ function addPagesFilter() {
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
         });
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                searchInput.value = '';
-                filterPages('');
-                searchInput.blur();
-                searchInput.style.backgroundColor = 'white';
-            }
+            handleFilterKeydown(e);
+
+        //    if (e.key === 'Escape') {
+        //        searchInput.value = '';
+        //        filterPages('');
+        //        searchInput.blur();
+        //        searchInput.style.backgroundColor = 'white';
+        //    }
         });
+
         filterTitle.appendChild(searchInput);
     }
 
@@ -760,12 +775,14 @@ function addFieldsFilter() {
     });
 
     searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            searchInput.value = '';
-            filterListItems('');
-            searchInput.blur();
-            searchInput.style.backgroundColor = 'white';
-        }
+        handleFilterKeydown(e);
+
+        //if (e.key === 'Escape') {
+        //    searchInput.value = '';
+        //    filterListItems('');
+        //    searchInput.blur();
+        //    searchInput.style.backgroundColor = 'white';
+        //}
     });
 
     fieldTabs.appendChild(searchInput);
@@ -867,4 +884,75 @@ function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, fil
 
     anchor.style.setProperty('--tw-bg-opacity', '1', 'important');
     anchor.style.setProperty('background-color', 'rgba(251, 239, 249, 1)', 'important');
+}
+
+// Shared utility function for keyboard handling in filter inputs
+// Shared utility function for keyboard handling in filter inputs
+function handleFilterKeydown(e, options = {}) {
+    const {
+        filteredListItems = [],
+        currentFocusIndex = 0,
+        currentSelectionIndex = -1,
+        onFocusChange = null,
+        resultsPopup = null,
+        tableScroller = null
+    } = options;
+
+    // For Home/End keys - allow default behavior when focused on input field
+    if (e.key === 'Home' || e.key === 'End') {
+        return currentFocusIndex;
+    }
+
+    // Handle other keys
+    switch (e.key) {
+        case 'Escape':
+            e.target.value = '';
+            e.target.dispatchEvent(new Event('input'));
+            e.target.blur();
+            e.target.style.backgroundColor = 'white';
+            if (tableScroller) tableScroller.style.height = 'unset';
+            if (resultsPopup) resultsPopup.style.display = 'none';
+            break;
+
+        case 'Tab':
+            if (e.target.id === 'incremental-filter-tables' && filteredListItems.length > 0) {
+                e.preventDefault();
+                const newIndex = (currentFocusIndex + 1) % filteredListItems.length;
+                onFocusChange?.(newIndex, currentSelectionIndex, filteredListItems);
+                return newIndex;
+            }
+            break;
+
+        case 'Enter':
+            if (e.target.id === 'incremental-filter-tables' && currentFocusIndex >= 0) {
+                const item = filteredListItems[currentFocusIndex];
+                item?.click();
+                onFocusChange?.(-1, currentFocusIndex, filteredListItems);
+                return currentFocusIndex;
+            }
+            break;
+
+        case 'ArrowUp':
+        case 'ArrowDown':
+            if (e.target.id === 'incremental-filter-tables' && filteredListItems.length > 0) {
+                e.preventDefault();
+                const delta = e.key === 'ArrowUp' ? -1 : 1;
+                const newIndex = (currentFocusIndex + delta + filteredListItems.length) % filteredListItems.length;
+                onFocusChange?.(newIndex, currentSelectionIndex, filteredListItems);
+                return newIndex;
+            }
+            break;
+
+        case 'Home':
+        case 'End':
+            if (e.target.id === 'incremental-filter-tables' && filteredListItems.length > 0) {
+                e.preventDefault();
+                const newIndex = e.key === 'Home' ? 0 : filteredListItems.length - 1;
+                onFocusChange?.(newIndex, currentSelectionIndex, filteredListItems);
+                return newIndex;
+            }
+            break;
+    }
+
+    return currentFocusIndex;
 }
