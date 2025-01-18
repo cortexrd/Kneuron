@@ -56,6 +56,40 @@ const css = `
     font-family: Inter,sans-serif;
 }
 
+.truncate-cell {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 20px;
+    transition: all 0.5s ease;
+}
+
+.truncate-cell.open {
+    overflow: visible;
+    white-space: normal;
+    background: white;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding-bottom: 25px;
+    max-height: 500px;
+    opacity: 1;
+}
+
+.truncate-cell .view-more-btn {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    transform: none;
+    color: blue;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 101;
+    background: inherit;
+    padding: 5px;
+}
+
 .monaco-list:not(.equation-editor .monaco-list) .monaco-list-rows {
   background-color: #efeaed !important;
 }
@@ -123,6 +157,10 @@ const genericObserver = new MutationObserver((mutations) => {
 
             if (mutation.target.querySelector('.view[data-view-key]:not(:has(.idTextStyle))')) {
                 addIDsToElements('.view[data-view-key]', 'data-view-key', 'h2');
+            }
+
+            if (mutation.target.querySelector('.kn-table-element td:not(:has(.truncate-cell))')) {
+                truncateCellText();
             }
         }
     });
@@ -888,4 +926,31 @@ function handleFilterKeydown(e, options = {}) {
     }
 
     return currentFocusIndex;
+}
+
+function truncateCellText(selector = '.kn-table-element td', textLimit = 50, parentTableId = '#kn-records-table') {
+    try {
+        document.querySelectorAll(selector).forEach(cell => {
+            if (cell.textContent.length > textLimit) {
+                cell.classList.add('truncate-cell');
+                if (cell.closest(parentTableId)) {
+                    if (cell.querySelector('.view-more-btn')) return;
+                    const viewMoreBtn = document.createElement('span');
+                    viewMoreBtn.textContent = 'more';
+                    viewMoreBtn.className = 'view-more-btn';
+                    cell.appendChild(viewMoreBtn);
+
+                    viewMoreBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        cell.classList.toggle('open');
+                        viewMoreBtn.textContent = cell.classList.contains('open') ? 'less' : 'more';
+                    });
+                }
+            }
+        });
+        return true;
+    } catch (error) {
+        console.error('Error in truncateCells:', error);
+        return false;
+    }
 }
