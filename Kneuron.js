@@ -159,7 +159,7 @@ const genericObserver = new MutationObserver((mutations) => {
                 addIDsToElements('.view[data-view-key]', 'data-view-key', 'h2');
             }
 
-            if (mutation.target.querySelector('.kn-table-element td:not(:has(.truncate-cell))')) {
+            if (mutation.target.querySelector('.kn-table-element td:not(.truncate-cell)')) {
                 truncateCellText();
             }
         }
