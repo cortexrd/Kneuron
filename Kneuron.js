@@ -65,6 +65,16 @@ const css = `
     transition: all 0.5s ease;
 }
 
+/* Target both types of spans */
+#kn-records-table .kn-table-cell.truncate-cell span[index],
+div.kn-view .kn-table-cell.truncate-cell span {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 20px;
+}
+
 .truncate-cell.open {
     overflow: visible;
     white-space: normal;
@@ -76,10 +86,17 @@ const css = `
     opacity: 1;
 }
 
+/* Reset spans when cell is open */
+#kn-records-table .kn-table-cell.truncate-cell.open span[index] {
+    white-space: normal;
+    overflow: visible;
+    max-height: none;
+}
+
 .truncate-cell .view-more-btn {
     position: absolute;
     right: 5px;
-    bottom: 5px;
+    bottom: 0px;
     transform: none;
     color: blue;
     text-decoration: none;
@@ -87,7 +104,7 @@ const css = `
     font-size: 12px;
     z-index: 101;
     background: inherit;
-    padding: 5px;
+    padding: 5px 5px 0 5px;
 }
 
 .monaco-list:not(.equation-editor .monaco-list) .monaco-list-rows {
