@@ -945,7 +945,7 @@ function handleFilterKeydown(e, options = {}) {
     return currentFocusIndex;
 }
 
-function truncateCellText(selector = '.kn-table-element td', textLimit = 50, parentTableId = '#kn-records-table') {
+function truncateCellText(selector = '.kn-table-element td:not(#kn-email-history-table td)', textLimit = 50, parentTableId = '#kn-records-table') {
     try {
         document.querySelectorAll(selector).forEach(cell => {
             if (cell.textContent.length > textLimit) {
