@@ -119,6 +119,9 @@ div.kn-view .kn-table-cell.truncate-cell span {
 .quick-input-list .monaco-keybinding > .monaco-keybinding-key {
  color: black !important;
 }
+.form-wrapper .kn-input-rich_text .redactor-editor{
+    max-height: 500px !important;
+}
 `;
 injectCSS(css);
 
