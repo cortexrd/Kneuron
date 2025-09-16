@@ -179,6 +179,12 @@ const genericObserver = new MutationObserver((mutations) => {
             if (mutation.target.querySelector('.kn-table-element td:not(.truncate-cell)')) {
                 truncateCellText();
             }
+
+            if (mutation.target.querySelector('[id^=object-li-object_].nav-item:not(.record-count-processed)')) {
+                if (window.location.href.includes('/records/')) {
+                    addRecordCounts();
+                }
+            }
         }
     });
 });
@@ -971,3 +977,72 @@ function truncateCellText(selector = '.kn-table-element td:not(#kn-email-history
         return false;
     }
 }
+
+//Add recourd counts to tables in the sidebar - BEGIN
+window.addEventListener('message', (event) => {
+    if (event.source !== window || event.data.type !== 'RECORD_COUNT_RESPONSE') return;
+    if (!window.location.href.includes('/records/')) return;
+
+    const { objectId, count, error } = event.data;
+    const item = document.querySelector(`#object-li-object_${objectId}`);
+    if (!item) return;
+
+    const textElement = item.querySelector('.label, .transition');
+    if (!textElement) return;
+
+    let countSpan = textElement.querySelector('.record-count-style');
+    if (!countSpan) return; // Should already exist
+
+    if (error) {
+        countSpan.textContent = '(error)';
+        countSpan.style.color = '#e74c3c';
+    } else {
+        countSpan.textContent = `(${count.toLocaleString()})`;
+    }
+});
+
+// Inject the page script
+function injectPageScript() {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('page-script.js');
+    script.onload = function () { this.remove(); };
+    (document.head || document.documentElement).appendChild(script);
+}
+
+function addRecordCounts() {
+    if (!window.location.href.includes('/records/')) return;
+
+    const tableItems = document.querySelectorAll('[id^=object-li-object_].nav-item:not(.record-count-processed)');
+
+    tableItems.forEach(item => {
+        item.classList.add('record-count-processed');
+
+        const objectId = item.id.match(/object_(\d+)/)?.[1];
+        if (!objectId) return;
+
+        const textElement = item.querySelector('.label, .transition');
+        if (!textElement) return;
+
+        // Check if count span already exists
+        if (textElement.querySelector('.record-count-style')) return;
+
+        // Add loading indicator
+        const countSpan = document.createElement('span');
+        countSpan.className = 'record-count-style';
+        countSpan.style.cssText = `
+            color: #9b9b9b !important;
+            font-size: small;
+            font-weight: 400 !important;
+            margin-left: 8px;
+            font-family: Inter,sans-serif;
+        `;
+        countSpan.textContent = '(...)';
+        textElement.appendChild(countSpan);
+
+        // Request the count
+        window.postMessage({ type: 'GET_RECORD_COUNT', objectId }, '*');
+    });
+}
+
+injectPageScript();
+//Add recourd counts to tables in the sidebar - END
