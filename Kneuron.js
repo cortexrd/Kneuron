@@ -161,6 +161,7 @@ const genericObserver = new MutationObserver((mutations) => {
 
             if (mutation.target.querySelector('h3[data-cy="page-filter-menu"]:not(.filter-processed)')) {
                 addPagesFilter();
+                addPageSortToggle();
                 mutation.target.querySelector('h3[data-cy="page-filter-menu"]').classList.add('filter-processed');
             }
 
@@ -184,6 +185,15 @@ const genericObserver = new MutationObserver((mutations) => {
                 if (window.location.href.includes('/records/')) {
                     addRecordCounts();
                 }
+            }
+
+            if (mutation.target.querySelector('li[id^="page-link-scene_"]:not(.sorted)')) {
+                if (pageSortingEnabled) {
+                    sortPages();
+                }
+                mutation.target.querySelectorAll('li[id^="page-link-scene_"]').forEach(item => {
+                    item.classList.add('sorted');
+                });
             }
         }
     });
@@ -1046,3 +1056,75 @@ function addRecordCounts() {
 
 injectPageScript();
 //Add recourd counts to tables in the sidebar - END
+
+
+//Sort pages alphabetically - BEGIN
+let pageSortingEnabled = localStorage.getItem('kneuron-page-sorting') !== 'false';
+
+function sortPages() {
+    if (!pageSortingEnabled) return;
+
+    function sortPageList(pagesList) {
+        if (!pagesList) return;
+
+        const pageItems = Array.from(pagesList.querySelectorAll(':scope > li[id^="page-link-scene_"]'));
+        if (pageItems.length === 0) return;
+
+        pageItems.sort((a, b) => {
+            const titleA = a.querySelector('.transition')?.textContent?.trim() || '';
+            const titleB = b.querySelector('.transition')?.textContent?.trim() || '';
+            return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        pageItems.forEach(item => {
+            pagesList.appendChild(item);
+            const childList = item.querySelector('ul.page-list-sortable');
+            if (childList) {
+                sortPageList(childList);
+            }
+        });
+    }
+
+    const mainPagesList = document.querySelector('ul.page-list-sortable');
+    sortPageList(mainPagesList);
+}
+
+function addPageSortToggle() {
+    const filterInput = document.querySelector('#incremental-filter-pages');
+
+    if (!filterInput || document.querySelector('#page-sort-toggle')) return;
+
+    const toggleButton = document.createElement('button');
+    toggleButton.id = 'page-sort-toggle';
+    toggleButton.style.cssText = `
+        margin-right: 8px;
+        padding: 2px 6px;
+        font-size: 12px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        background: ${pageSortingEnabled ? '#ffeffc' : '#f5f5f5'};
+        color: black;
+        cursor: pointer;
+        height: 24px;
+        vertical-align: middle;
+    `;
+    toggleButton.textContent = pageSortingEnabled ? 'ABC' : 'abc';
+    toggleButton.title = `Page sorting ${pageSortingEnabled ? 'enabled' : 'disabled'} - click to toggle`;
+
+    toggleButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        pageSortingEnabled = !pageSortingEnabled;
+        localStorage.setItem('kneuron-page-sorting', pageSortingEnabled.toString());
+
+        toggleButton.style.background = pageSortingEnabled ? '#ffeffc' : '#f5f5f5';
+        toggleButton.textContent = pageSortingEnabled ? 'ABC' : 'abc';
+        toggleButton.title = `Page sorting ${pageSortingEnabled ? 'enabled' : 'disabled'} - click to toggle`;
+
+        location.reload();
+    });
+
+    filterInput.parentNode.insertBefore(toggleButton, filterInput);
+}
+//Sort pages alphabetically - END
