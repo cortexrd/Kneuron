@@ -58,7 +58,6 @@ const css = `
 
 .truncate-cell {
     max-width: 200px;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-height: 20px;
@@ -379,7 +378,7 @@ document.addEventListener('keydown', async function (event) {
             } else {
                 element = document.querySelector('[id^=incremental-filter-]')
                     || document.querySelector('.is-active a.settings')
-                    || document.querySelector('a.save')
+                    || document.querySelector('.button.save')
                     || document.querySelector('input[type="search"]');
             }
         } else if (keyPressed === 'KeyM') {
@@ -966,24 +965,24 @@ function handleFilterKeydown(e, options = {}) {
 
 function truncateCellText(selector = '.kn-table-element td:not(#kn-email-history-table td)', textLimit = 50, parentTableId = '#kn-records-table') {
     try {
-        document.querySelectorAll(selector).forEach(cell => {
-            if (cell.textContent.length > textLimit) {
-                cell.classList.add('truncate-cell');
-                if (cell.closest(parentTableId)) {
-                    if (cell.querySelector('.view-more-btn')) return;
-                    const viewMoreBtn = document.createElement('span');
-                    viewMoreBtn.textContent = 'more';
-                    viewMoreBtn.className = 'view-more-btn';
-                    cell.appendChild(viewMoreBtn);
+        // document.querySelectorAll(selector).forEach(cell => {
+        //     if (cell.textContent.length > textLimit) {
+        //         cell.classList.add('truncate-cell');
+        //         if (cell.closest(parentTableId)) {
+        //             if (cell.querySelector('.view-more-btn')) return;
+        //             const viewMoreBtn = document.createElement('span');
+        //             viewMoreBtn.textContent = 'more';
+        //             viewMoreBtn.className = 'view-more-btn';
+        //             cell.appendChild(viewMoreBtn);
 
-                    viewMoreBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        cell.classList.toggle('open');
-                        viewMoreBtn.textContent = cell.classList.contains('open') ? 'less' : 'more';
-                    });
-                }
-            }
-        });
+        //             viewMoreBtn.addEventListener('click', (e) => {
+        //                 e.stopPropagation();
+        //                 cell.classList.toggle('open');
+        //                 viewMoreBtn.textContent = cell.classList.contains('open') ? 'less' : 'more';
+        //             });
+        //         }
+        //     }
+        // });
         return true;
     } catch (error) {
         console.error('Error in truncateCells:', error);
