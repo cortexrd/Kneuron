@@ -1362,16 +1362,117 @@ function addConnectionFilterIcons() {
             e.stopPropagation();
 
             const fieldName = fieldNameEl.textContent.trim();
-            const filterInput = document.querySelector('input[placeholder*="Filter fields"]');
-
-            if (filterInput && fieldName) {
-                filterInput.value = fieldName;
-                filterInput.dispatchEvent(new Event('input', { bubbles: true }));
-                filterInput.focus();
+            if (fieldName) {
+                scrollToAndSelectField(fieldName, conn);
             }
         });
 
         settingsLink.parentNode.insertBefore(filterIcon, settingsLink.nextSibling);
     });
+}
+
+injectCSS(`
+    .kneuron-field-highlight.kneuron-field-highlight {
+        background-color: #f8d7f0 !important;
+    }
+`);
+
+function clearFieldHighlights() {
+    document.querySelectorAll('.kneuron-field-highlight').forEach(el => {
+        el.classList.remove('kneuron-field-highlight');
+    });
+}
+
+function highlightElement(el) {
+    el.classList.add('kneuron-field-highlight');
+}
+
+// Clear highlights on any click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.kneuron-filter-icon')) {
+        clearFieldHighlights();
+    }
+});
+
+function scrollToAndSelectField(fieldName, sourceConn) {
+    const scroller = document.querySelector('[data-cy="object-list-fields"]');
+    if (!scroller) return;
+
+    // Clear previous highlights
+    clearFieldHighlights();
+
+    // Highlight the source connection
+    if (sourceConn) {
+        highlightElement(sourceConn);
+    }
+
+    const maxAttempts = 200;
+    let attempts = 0;
+    const scrollAmount = 500;
+
+    // First scroll to top
+    scroller.scrollTop = 0;
+
+    function searchAndScroll() {
+        const allItems = scroller.querySelectorAll('.vue-recycle-scroller__item-view');
+        // Filter out off-screen recycled items (translateY with large negative values)
+        const items = Array.from(allItems).filter(item => {
+            const transform = item.style.transform;
+            if (!transform) return true;
+            const match = transform.match(/translateY\((-?\d+)px\)/);
+            return !match || parseInt(match[1]) >= 0;
+        });
+        for (const item of items) {
+            const nameEl = item.querySelector('span.text-emphasis')
+                || item.querySelector('.text-emphasis')
+                || item.querySelector('[class*="field-name"]')
+                || item.querySelector('span');
+            if (nameEl) {
+                const itemName = nameEl.textContent.trim();
+                if (itemName === fieldName) {
+                    // Found it - scroll to center first
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Re-highlight after scroll completes (poll until items are visible)
+                    let highlightAttempts = 0;
+                    function tryHighlight() {
+                        highlightAttempts++;
+                        const freshItems = scroller.querySelectorAll('.vue-recycle-scroller__item-view');
+                        for (const freshItem of freshItems) {
+                            const transform = freshItem.style.transform;
+                            const match = transform ? transform.match(/translateY\((-?\d+)px\)/) : null;
+                            if (match && parseInt(match[1]) < 0) continue;
+
+                            const freshNameEl = freshItem.querySelector('span.text-emphasis')
+                                || freshItem.querySelector('.text-emphasis')
+                                || freshItem.querySelector('span');
+                            if (freshNameEl && freshNameEl.textContent.trim() === fieldName) {
+                                const tile = freshItem.querySelector('.tile') || freshItem;
+                                highlightElement(tile);
+                                return;
+                            }
+                        }
+                        if (highlightAttempts < 30) {
+                            setTimeout(tryHighlight, 30);
+                        }
+                    }
+                    setTimeout(tryHighlight, 50);
+                    return;
+                }
+            }
+        }
+
+        // Not found, check if we've reached the bottom
+        const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 10;
+        if (atBottom || attempts >= maxAttempts) {
+            return;
+        }
+
+        // Scroll down and try again
+        attempts++;
+        scroller.scrollTop += scrollAmount;
+        setTimeout(searchAndScroll, 80);
+    }
+
+    setTimeout(searchAndScroll, 80);
 }
 //Connection filter icons - END
