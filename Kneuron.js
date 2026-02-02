@@ -1337,6 +1337,9 @@ function addConnectionFilterIcons() {
         // Skip elements that have a foreignObjectLink (links to other tables)
         if (conn.querySelector('.foreignObjectLink')) return;
 
+        // Skip if filter icon already exists in this connection
+        if (conn.querySelector('.kneuron-filter-icon')) return;
+
         const fieldNameEl = conn.querySelector('.conn-name span.text-emphasis')
             || conn.querySelector('span.text-emphasis');
         if (!fieldNameEl) return;
@@ -1345,7 +1348,7 @@ function addConnectionFilterIcons() {
         settingsLink.style.marginLeft = 'auto';
 
         const filterIcon = document.createElement('a');
-        filterIcon.className = 'buttonSquare -size-small';
+        filterIcon.className = 'buttonSquare -size-small kneuron-filter-icon';
         filterIcon.style.cssText = 'margin-left: 4px; cursor: pointer;';
         filterIcon.title = 'Filter by this field name';
         filterIcon.innerHTML = `
