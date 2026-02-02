@@ -156,6 +156,10 @@ const genericObserver = new MutationObserver((mutations) => {
                 addFieldsFilter();
             }
 
+            if (mutation.target.querySelector('#connection-objects a[content="Edit this connection!"]:not(.filter-icon-added)')) {
+                addConnectionFilterIcons();
+            }
+
             if (mutation.target.querySelector('select[data-cy="movecopy-select"]:not(.filter-processed)')) {
                 addMoveCopyViewFilter();
                 mutation.target.querySelector('select[data-cy="movecopy-select"]').classList.add('filter-processed');
@@ -1317,3 +1321,54 @@ function applyStickyCols(columnCount = 3) {
     });
 }
 //Sticky columns - END
+
+//Connection filter icons - BEGIN
+function addConnectionFilterIcons() {
+    // Find all settings links that don't already have a filter icon next to them
+    const settingsLinks = document.querySelectorAll('#connection-objects a[content="Edit this connection!"]:not(.filter-icon-added)');
+
+    settingsLinks.forEach(settingsLink => {
+        settingsLink.classList.add('filter-icon-added');
+
+        // Get the parent connection element
+        const conn = settingsLink.closest('.connection');
+        if (!conn) return;
+
+        // Skip elements that have a foreignObjectLink (links to other tables)
+        if (conn.querySelector('.foreignObjectLink')) return;
+
+        const fieldNameEl = conn.querySelector('.conn-name span.text-emphasis')
+            || conn.querySelector('span.text-emphasis');
+        if (!fieldNameEl) return;
+
+        // Push the settings link (and filter icon) to the right
+        settingsLink.style.marginLeft = 'auto';
+
+        const filterIcon = document.createElement('a');
+        filterIcon.className = 'buttonSquare -size-small';
+        filterIcon.style.cssText = 'margin-left: 4px; cursor: pointer;';
+        filterIcon.title = 'Filter by this field name';
+        filterIcon.innerHTML = `
+            <svg viewBox="0 0 24 24" class="icon h-4 w-4 text-default">
+                <path fill="currentColor" d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2.5a1 1 0 0 1-.293.707L15 12.914V20a1 1 0 0 1-.553.894l-4 2A1 1 0 0 1 9 22v-9.086L3.293 7.207A1 1 0 0 1 3 6.5V4z"/>
+            </svg>
+        `;
+
+        filterIcon.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const fieldName = fieldNameEl.textContent.trim();
+            const filterInput = document.querySelector('input[placeholder*="Filter fields"]');
+
+            if (filterInput && fieldName) {
+                filterInput.value = fieldName;
+                filterInput.dispatchEvent(new Event('input', { bubbles: true }));
+                filterInput.focus();
+            }
+        });
+
+        settingsLink.parentNode.insertBefore(filterIcon, settingsLink.nextSibling);
+    });
+}
+//Connection filter icons - END
