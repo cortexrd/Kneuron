@@ -189,6 +189,21 @@ const genericObserver = new MutationObserver((mutations) => {
                 }
             }
 
+            if (mutation.target.querySelector('[data-cy="add-filters"]:not(.stickyCols-processed)')) {
+                if (window.location.href.includes('/records/')) {
+                    addStickyColsInput();
+                }
+            }
+
+            if (mutation.target.querySelector('table:not(.kneuronStickyColumns)')) {
+                if (window.location.href.includes('/records/')) {
+                    const colCount = parseInt(localStorage.getItem('kneuron-sticky-cols') || '0');
+                    if (colCount > 0) {
+                        applyStickyCols(colCount + 2);
+                    }
+                }
+            }
+
             if (mutation.target.querySelector('li[id^="page-link-scene_"]:not(.sorted)')) {
                 if (pageSortingEnabled) {
                     sortPages();
@@ -1191,3 +1206,101 @@ function addPageSortToggle() {
     filterInput.parentNode.insertBefore(toggleButton, filterInput);
 }
 //Sort pages alphabetically - END
+
+//Sticky columns input control
+function addStickyColsInput() {
+    const addFiltersBtn = document.querySelector('[data-cy="add-filters"]');
+    if (!addFiltersBtn || addFiltersBtn.classList.contains('stickyCols-processed')) return;
+
+    addFiltersBtn.classList.add('stickyCols-processed');
+
+    const container = document.createElement('span');
+    container.style.cssText = 'margin-left: 24px; display: inline-flex; align-items: center;';
+
+    const label = document.createElement('span');
+    label.textContent = 'Sticky Cols:';
+    label.style.cssText = 'margin-right: 6px; font-size: 13px; color: #666;';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.max = '10';
+    input.value = localStorage.getItem('kneuron-sticky-cols') || '0';
+    input.title = 'Additional sticky columns after checkbox and actions (0 = disabled)';
+    input.style.cssText = 'width: 40px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center;';
+
+    container.appendChild(label);
+    container.appendChild(input);
+
+    input.addEventListener('change', () => {
+        const colCount = parseInt(input.value) || 0;
+        localStorage.setItem('kneuron-sticky-cols', colCount.toString());
+
+        const table = document.querySelector('table.kneuronStickyColumns');
+        if (table) {
+            table.classList.remove('kneuronStickyColumns');
+            // Reset sticky styles
+            table.querySelectorAll('thead th, tbody td').forEach(cell => {
+                cell.style.position = '';
+                cell.style.left = '';
+                cell.style.zIndex = '';
+                cell.style.backgroundColor = '';
+            });
+        }
+
+        if (colCount > 0) {
+            applyStickyCols(colCount + 2);
+        }
+    });
+
+    addFiltersBtn.parentNode.insertBefore(container, addFiltersBtn.nextSibling);
+}
+
+//Sticky columns for Records table
+function applyStickyCols(columnCount = 3) {
+    const table = document.querySelector('table');
+    if (!table) return;
+
+    table.classList.add('kneuronStickyColumns');
+    table.style.borderCollapse = 'separate';
+    table.style.borderSpacing = '0';
+
+    const headerCells = document.querySelectorAll('thead tr th');
+    if (headerCells.length < columnCount) return;
+
+    let leftPos = 0;
+    const positions = [];
+    for (let i = 0; i < columnCount; i++) {
+        positions.push(leftPos);
+        leftPos += headerCells[i].offsetWidth;
+    }
+
+    for (let i = 0; i < columnCount; i++) {
+        const th = headerCells[i];
+        th.style.position = 'sticky';
+        th.style.left = positions[i] + 'px';
+        th.style.zIndex = '3';
+    }
+
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach((row) => {
+        const cells = row.querySelectorAll('td');
+        const rowBg = window.getComputedStyle(row).backgroundColor;
+
+        let bgColor;
+        if (rowBg === 'rgba(0, 0, 0, 0)' || rowBg === 'transparent') {
+            bgColor = 'rgb(255, 255, 255)';
+        } else {
+            bgColor = rowBg;
+        }
+
+        for (let i = 0; i < columnCount && i < cells.length; i++) {
+            const td = cells[i];
+            td.style.position = 'sticky';
+            td.style.left = positions[i] + 'px';
+            td.style.zIndex = '1';
+            td.style.backgroundColor = bgColor;
+        }
+    });
+}
+//Sticky columns - END
