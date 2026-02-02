@@ -378,7 +378,7 @@ document.addEventListener('keydown', async function (event) {
             } else {
                 element = document.querySelector('[id^=incremental-filter-]')
                     || document.querySelector('.is-active a.settings')
-                    || document.querySelector('.button.save')
+                    || document.querySelector('[data-testid="save-code-btn"]')
                     || document.querySelector('input[type="search"]');
             }
         } else if (keyPressed === 'KeyM') {
@@ -991,6 +991,60 @@ function truncateCellText(selector = '.kn-table-element td:not(#kn-email-history
 }
 
 //Add recourd counts to tables in the sidebar - BEGIN
+const recordCountCache = {
+    CACHE_KEY: 'kneuron-record-counts',
+    CACHE_DURATION: 60 * 60 * 1000, // 1 hour
+
+    get() {
+        try {
+            return JSON.parse(localStorage.getItem(this.CACHE_KEY)) || {};
+        } catch { return {}; }
+    },
+
+    set(objectId, count) {
+        const cache = this.get();
+        cache[objectId] = { count, timestamp: Date.now() };
+        localStorage.setItem(this.CACHE_KEY, JSON.stringify(cache));
+    },
+
+    getCachedCount(objectId) {
+        const cache = this.get();
+        const entry = cache[objectId];
+        if (entry && (Date.now() - entry.timestamp) < this.CACHE_DURATION) {
+            return entry.count;
+        }
+        return null;
+    }
+};
+
+const recordCountQueue = {
+    queue: [],
+    processing: false,
+    DELAY_MS: 500, // delay between requests
+
+    add(objectId) {
+        if (!this.queue.includes(objectId)) {
+            this.queue.push(objectId);
+        }
+        this.process();
+    },
+
+    async process() {
+        if (this.processing || this.queue.length === 0) return;
+        this.processing = true;
+
+        while (this.queue.length > 0) {
+            const objectId = this.queue.shift();
+            window.postMessage({ type: 'GET_RECORD_COUNT', objectId }, '*');
+            if (this.queue.length > 0) {
+                await new Promise(resolve => setTimeout(resolve, this.DELAY_MS));
+            }
+        }
+
+        this.processing = false;
+    }
+};
+
 window.addEventListener('message', (event) => {
     if (event.source !== window || event.data.type !== 'RECORD_COUNT_RESPONSE') return;
     if (!window.location.href.includes('/records/')) return;
@@ -1010,6 +1064,7 @@ window.addEventListener('message', (event) => {
         countSpan.style.color = '#e74c3c';
     } else {
         countSpan.textContent = `(${count.toLocaleString()})`;
+        recordCountCache.set(objectId, count);
     }
 });
 
@@ -1038,7 +1093,6 @@ function addRecordCounts() {
         // Check if count span already exists
         if (textElement.querySelector('.record-count-style')) return;
 
-        // Add loading indicator
         const countSpan = document.createElement('span');
         countSpan.className = 'record-count-style';
         countSpan.style.cssText = `
@@ -1048,11 +1102,18 @@ function addRecordCounts() {
             margin-left: 8px;
             font-family: Inter,sans-serif;
         `;
-        countSpan.textContent = '(...)';
+
+        // Show cached value immediately if available
+        const cachedCount = recordCountCache.getCachedCount(objectId);
+        if (cachedCount !== null) {
+            countSpan.textContent = `(${cachedCount.toLocaleString()})`;
+        } else {
+            countSpan.textContent = '(...)';
+        }
         textElement.appendChild(countSpan);
 
-        // Request the count
-        window.postMessage({ type: 'GET_RECORD_COUNT', objectId }, '*');
+        // Queue background refresh
+        recordCountQueue.add(objectId);
     });
 }
 
