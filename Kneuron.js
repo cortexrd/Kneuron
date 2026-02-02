@@ -335,6 +335,18 @@ document.addEventListener('keydown', async function (event) {
 
         event.preventDefault();
     } else if (keyPressed === 'Escape') {
+        const tablesFilter = document.querySelector('#incremental-filter-tables');
+        if (tablesFilter && tablesFilter.value) {
+            tablesFilter.value = '';
+            tablesFilter.dispatchEvent(new Event('input', { bubbles: true }));
+            setTimeout(() => {
+                const activeTable = document.querySelector('#objects-nav .router-link-active');
+                if (activeTable) {
+                    activeTable.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }, 100);
+            return;
+        }
         element = document.querySelector('[data-cy=cancel]') || document.querySelector('.modal_close') || document.querySelector('a.cancel') || document.querySelector('.header_close');
     } else if (event.altKey) {
         if (keyPressed.includes('Digit')) {
@@ -499,7 +511,7 @@ function addTablesFilter() {
         searchInput.style.marginLeft = '30px';
         searchInput.style.padding = '2px 5px';
         searchInput.style.fontSize = '14px';
-        searchInput.style.borderRadius = '4px';
+        searchInput.style.borderRadius = '8px';
         searchInput.style.border = '1px solid #ccc';
         searchInput.style.height = '35px';
         searchInput.style.width = '140px';
@@ -585,7 +597,7 @@ function addMoveCopyViewFilter() {
         searchInput.style.marginBottom = '10px';
         searchInput.style.padding = '2px 5px';
         searchInput.style.fontSize = '14px';
-        searchInput.style.borderRadius = '4px';
+        searchInput.style.borderRadius = '8px';
         searchInput.style.border = '1px solid #ccc';
         searchInput.style.height = '35px';
         searchInput.style.width = '100%';
@@ -599,7 +611,7 @@ function addMoveCopyViewFilter() {
         resultsPopup.style.overflowY = 'auto';
         resultsPopup.style.backgroundColor = 'white';
         resultsPopup.style.border = '1px solid #ccc';
-        resultsPopup.style.borderRadius = '4px';
+        resultsPopup.style.borderRadius = '8px';
         resultsPopup.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
         resultsPopup.style.zIndex = '1000';
         resultsPopup.style.display = 'none';
@@ -684,7 +696,7 @@ function addPagesFilter() {
         searchInput.style.marginLeft = '10px';
         searchInput.style.padding = '2px 5px';
         searchInput.style.fontSize = '14px';
-        searchInput.style.borderRadius = '4px';
+        searchInput.style.borderRadius = '8px';
         searchInput.style.border = '1px solid #ccc';
         searchInput.style.height = '35px';
         searchInput.style.width = '110px';
@@ -789,7 +801,7 @@ function addFieldsFilter() {
     searchInput.style.marginLeft = '30px';
     searchInput.style.padding = '2px 5px';
     searchInput.style.fontSize = '14px';
-    searchInput.style.borderRadius = '4px';
+    searchInput.style.borderRadius = '8px';
     searchInput.style.border = '1px solid #ccc';
     searchInput.style.height = '35px';
     searchInput.style.width = '140px';
@@ -900,7 +912,8 @@ function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, fil
     // Apply styles to current selection
     if (currentSelectionIndex === currentFocusIndex) return;
 
-    const anchor = filteredListItems[currentFocusIndex]?.querySelector('a');
+    const focusedItem = filteredListItems[currentFocusIndex];
+    const anchor = focusedItem?.querySelector('a');
     if (!anchor) return;
 
     anchor.style.setProperty('--tw-bg-opacity', '1', 'important');
@@ -1215,11 +1228,11 @@ function addStickyColsInput() {
     addFiltersBtn.classList.add('stickyCols-processed');
 
     const container = document.createElement('span');
-    container.style.cssText = 'margin-left: 24px; display: inline-flex; align-items: center;';
+    container.style.cssText = 'margin-left: 24px; padding: 4px; display: inline-flex; align-items: center;';
 
     const label = document.createElement('span');
     label.textContent = 'Sticky Cols:';
-    label.style.cssText = 'margin-right: 6px; font-size: 13px; color: #666;';
+    label.style.cssText = 'margin-right: 6px; font-size: 13px; color: rgb(var(--content-default));';
 
     const input = document.createElement('input');
     input.type = 'number';
@@ -1227,7 +1240,7 @@ function addStickyColsInput() {
     input.max = '10';
     input.value = localStorage.getItem('kneuron-sticky-cols') || '0';
     input.title = 'Additional sticky columns after checkbox and actions (0 = disabled)';
-    input.style.cssText = 'width: 40px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center;';
+    input.style.cssText = 'width: 50px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 8px; text-align: center;';
 
     container.appendChild(label);
     container.appendChild(input);
