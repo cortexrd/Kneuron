@@ -199,7 +199,7 @@ const genericObserver = new MutationObserver((mutations) => {
                 }
             }
 
-            if (mutation.target.querySelector('table:not(.kneuronStickyColumns)')) {
+            if (mutation.target.querySelector('#records-body-wrapper table:not(.kneuronStickyColumns)')) {
                 if (window.location.href.includes('/records/')) {
                     const colCount = parseInt(localStorage.getItem('kneuron-sticky-cols') || '0');
                     if (colCount > 0) {
@@ -344,7 +344,7 @@ document.addEventListener('keydown', async function (event) {
             tablesFilter.value = '';
             tablesFilter.dispatchEvent(new Event('input', { bubbles: true }));
             setTimeout(() => {
-                const activeTable = document.querySelector('#objects-nav .router-link-active');
+                const activeTable = document.querySelector('#objects-nav .router-link-active a');
                 if (activeTable) {
                     activeTable.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 }
@@ -404,10 +404,15 @@ document.addEventListener('keydown', async function (event) {
             // 1- Activate the Settings toolbox, when a view is selected
             // 2- Puts cursor on the Filter box when it is visible, or on Knack's Field Filter (toggling between both)
             // 3- Click on Save, when Javascript or CSS editor is active
-            if (activeElement === document.querySelector('#incremental-filter-tables')) {
-                element = knackSearch;
+            const tablesFilter = document.querySelector('#incremental-filter-tables');
+            const recordsSearch = document.querySelector('#kn-records-table .recordsNav_search input');
+            if (activeElement === tablesFilter && recordsSearch) {
+                element = recordsSearch;
+            } else if (activeElement === recordsSearch && tablesFilter) {
+                element = tablesFilter;
             } else {
                 element = document.querySelector('[id^=incremental-filter-]')
+                    || recordsSearch
                     || document.querySelector('.is-active a.settings')
                     || document.querySelector('[data-testid="save-code-btn"]')
                     || document.querySelector('input[type="search"]');
@@ -1253,7 +1258,7 @@ function addStickyColsInput() {
         const colCount = parseInt(input.value) || 0;
         localStorage.setItem('kneuron-sticky-cols', colCount.toString());
 
-        const table = document.querySelector('table.kneuronStickyColumns');
+        const table = document.querySelector('#records-body-wrapper table.kneuronStickyColumns');
         if (table) {
             table.classList.remove('kneuronStickyColumns');
             // Reset sticky styles
@@ -1275,7 +1280,7 @@ function addStickyColsInput() {
 
 //Sticky columns for Records table
 function applyStickyCols(columnCount = 3) {
-    const table = document.querySelector('table');
+    const table = document.querySelector('#records-body-wrapper table');
     if (!table) return;
 
     table.classList.add('kneuronStickyColumns');
