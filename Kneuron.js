@@ -405,13 +405,15 @@ document.addEventListener('keydown', async function (event) {
             // 2- Puts cursor on the Filter box when it is visible, or on Knack's Field Filter (toggling between both)
             // 3- Click on Save, when Javascript or CSS editor is active
             const tablesFilter = document.querySelector('#incremental-filter-tables');
+            const fieldsFilter = document.querySelector('.input-box.filter-input input');
             const recordsSearch = document.querySelector('#kn-records-table .recordsNav_search input');
-            if (activeElement === tablesFilter && recordsSearch) {
-                element = recordsSearch;
-            } else if (activeElement === recordsSearch && tablesFilter) {
+            if (activeElement === tablesFilter && (fieldsFilter || recordsSearch)) {
+                element = fieldsFilter || recordsSearch;
+            } else if ((activeElement === fieldsFilter || activeElement === recordsSearch) && tablesFilter) {
                 element = tablesFilter;
             } else {
                 element = document.querySelector('[id^=incremental-filter-]')
+                    || fieldsFilter
                     || recordsSearch
                     || document.querySelector('.is-active a.settings')
                     || document.querySelector('[data-testid="save-code-btn"]')
