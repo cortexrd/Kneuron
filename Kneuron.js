@@ -317,6 +317,7 @@ document.addEventListener('keydown', async function (event) {
             || document.querySelector('[data-cy=save-filters]')
             || document.querySelector('[data-cy=save]')
             || document.querySelector('[data-cy=save-view-add]')
+            || document.querySelector('[data-cy=add-view-wizard-continue]')
             || document.querySelector('a.save')
             || document.querySelector('.kn-input[type=submit]');
 
@@ -351,7 +352,11 @@ document.addEventListener('keydown', async function (event) {
             }, 100);
             return;
         }
-        element = document.querySelector('[data-cy=cancel]') || document.querySelector('.modal_close') || document.querySelector('a.cancel') || document.querySelector('.header_close');
+        element = document.querySelector('[data-cy=cancel]')
+            || document.querySelector('.modal_close')
+            || document.querySelector('a.cancel')
+            || document.querySelector('.header_close')
+            || document.querySelector('a:has(.icon-close)');
     } else if (event.altKey) {
         if (keyPressed.includes('Digit')) {
             keyPressed = keyPressed.replace('Digit', '');
@@ -713,14 +718,70 @@ function addPagesFilter() {
         searchInput.style.width = '110px';
         searchInput.id = 'incremental-filter-pages';
 
+        let currentFocusIndex = 0;
+        let currentSelectionIndex = -1;
+
+        function getFilteredPageItems() {
+            return Array.from(document.querySelectorAll('li[data-cy="page-link-item"]'))
+                .filter(item => item.style.display !== 'none');
+        }
+
+        function updatePageFocusStyles(focusIndex, selectionIndex, items) {
+            items.forEach(item => {
+                const anchor = item.querySelector('a');
+                if (anchor) {
+                    anchor.style.removeProperty('background-color');
+                    anchor.style.removeProperty('box-shadow');
+                }
+            });
+            if (focusIndex >= 0 && focusIndex < items.length && focusIndex !== selectionIndex) {
+                const focusedItem = items[focusIndex];
+                const anchor = focusedItem?.querySelector('a');
+                if (anchor) {
+                    anchor.style.setProperty('background-color', 'rgba(251, 239, 249, 1)', 'important');
+                    anchor.style.setProperty('box-shadow', 'inset 0 0 0 1px #962783', 'important');
+                    focusedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }
+        }
+
         searchInput.addEventListener('mousedown', (e) => e.stopPropagation());
         searchInput.addEventListener('click', (e) => e.stopPropagation());
+
+        searchInput.addEventListener('focus', () => {
+            const filteredItems = getFilteredPageItems();
+            updatePageFocusStyles(currentFocusIndex, currentSelectionIndex, filteredItems);
+        });
+
         searchInput.addEventListener('input', (e) => {
             const hasMatches = filterPages(e.target.value);
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
+            currentFocusIndex = 0;
+            const filteredItems = getFilteredPageItems();
+            updatePageFocusStyles(currentFocusIndex, currentSelectionIndex, filteredItems);
         });
+
         searchInput.addEventListener('keydown', (e) => {
-            handleFilterKeydown(e);
+            const filteredItems = getFilteredPageItems();
+            currentFocusIndex = handleFilterKeydown(e, {
+                filteredListItems: filteredItems,
+                currentFocusIndex,
+                currentSelectionIndex,
+                onFocusChange: updatePageFocusStyles,
+                onEscape: () => {
+                    setTimeout(() => {
+                        const activePage = document.querySelector('.page-list-sortable .router-link-active');
+                        if (activePage) {
+                            activePage.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }
+                    }, 100);
+                }
+            });
+        });
+
+        searchInput.addEventListener('blur', () => {
+            const filteredItems = getFilteredPageItems();
+            updatePageFocusStyles(-1, currentSelectionIndex, filteredItems);
         });
 
         filterTitle.appendChild(searchInput);
@@ -932,13 +993,13 @@ function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, fil
 }
 
 // Shared utility function for keyboard handling in filter inputs
-// Shared utility function for keyboard handling in filter inputs
 function handleFilterKeydown(e, options = {}) {
     const {
         filteredListItems = [],
         currentFocusIndex = 0,
         currentSelectionIndex = -1,
         onFocusChange = null,
+        onEscape = null,
         resultsPopup = null,
         tableScroller = null
     } = options;
@@ -957,10 +1018,11 @@ function handleFilterKeydown(e, options = {}) {
             e.target.style.backgroundColor = 'white';
             if (tableScroller) tableScroller.style.height = 'unset';
             if (resultsPopup) resultsPopup.style.display = 'none';
+            onEscape?.();
             break;
 
         case 'Tab':
-            if (e.target.id === 'incremental-filter-tables' && filteredListItems.length > 0) {
+            if (filteredListItems.length > 0) {
                 e.preventDefault();
                 const newIndex = (currentFocusIndex + 1) % filteredListItems.length;
                 onFocusChange?.(newIndex, currentSelectionIndex, filteredListItems);
@@ -969,9 +1031,12 @@ function handleFilterKeydown(e, options = {}) {
             break;
 
         case 'Enter':
-            if (e.target.id === 'incremental-filter-tables' && currentFocusIndex >= 0) {
+            if (filteredListItems.length > 0 && currentFocusIndex >= 0) {
+                e.preventDefault();
+                e.stopPropagation();
                 const item = filteredListItems[currentFocusIndex];
-                item?.click();
+                const link = item?.querySelector('a');
+                (link || item)?.click();
                 onFocusChange?.(-1, currentFocusIndex, filteredListItems);
                 return currentFocusIndex;
             }
@@ -979,7 +1044,7 @@ function handleFilterKeydown(e, options = {}) {
 
         case 'ArrowUp':
         case 'ArrowDown':
-            if (e.target.id === 'incremental-filter-tables' && filteredListItems.length > 0) {
+            if (filteredListItems.length > 0) {
                 e.preventDefault();
                 const delta = e.key === 'ArrowUp' ? -1 : 1;
                 const newIndex = (currentFocusIndex + delta + filteredListItems.length) % filteredListItems.length;
@@ -990,7 +1055,7 @@ function handleFilterKeydown(e, options = {}) {
 
         case 'Home':
         case 'End':
-            if (e.target.id === 'incremental-filter-tables' && filteredListItems.length > 0) {
+            if (filteredListItems.length > 0) {
                 e.preventDefault();
                 const newIndex = e.key === 'Home' ? 0 : filteredListItems.length - 1;
                 onFocusChange?.(newIndex, currentSelectionIndex, filteredListItems);
@@ -1203,11 +1268,12 @@ function addPageSortToggle() {
         padding: 2px 6px;
         font-size: 12px;
         border: 1px solid #ccc;
-        border-radius: 3px;
+        border-radius: 8px;
         background: ${pageSortingEnabled ? '#ffeffc' : '#f5f5f5'};
         color: black;
         cursor: pointer;
-        height: 24px;
+        height: 35px;
+        width: 50px;
         vertical-align: middle;
     `;
     toggleButton.textContent = pageSortingEnabled ? 'ABC' : 'abc';
