@@ -954,17 +954,22 @@ function addIDsToElements(elementSelector, idAttribute, textSelector) {
     });
 }
 
-function toggleDividerMinMax() {
-    const divider = document.querySelector('.divider');
-    if (divider) {
-        const dblClickEvent = new MouseEvent('dblclick', {
-            bubbles: true,
-            cancelable: true,
-            view: window
-        });
+let dividerState = null; // null = unknown, 0 = min, 1 = mid, 2 = max
+const DIVIDER_STATES = ['300px', '550px', '800px'];
 
-        divider.dispatchEvent(dblClickEvent);
+function toggleDividerMinMax() {
+    const toolbox = document.querySelector('#schema-toolbox');
+    if (!toolbox) return;
+
+    if (dividerState === null) {
+        const current = parseInt(toolbox.style.flexBasis) || 0;
+        if (current <= 0) dividerState = 0;
+        else if (current <= 280) dividerState = 1;
+        else dividerState = 2;
     }
+
+    dividerState = (dividerState + 1) % 3;
+    toolbox.style.setProperty('flex-basis', DIVIDER_STATES[dividerState], 'important');
 }
 
 function getFilteredListItems(searchEmpty) {
@@ -979,6 +984,7 @@ function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, fil
         // Remove highlight styles from the <a>
         anchor.style.removeProperty('--tw-bg-opacity');
         anchor.style.removeProperty('background-color');
+        anchor.style.removeProperty('box-shadow');
     });
 
     // Apply styles to current selection
@@ -990,6 +996,7 @@ function updateListItemFocusStyles(currentFocusIndex, currentSelectionIndex, fil
 
     anchor.style.setProperty('--tw-bg-opacity', '1', 'important');
     anchor.style.setProperty('background-color', 'rgba(251, 239, 249, 1)', 'important');
+    anchor.style.setProperty('box-shadow', 'inset 0 0 0 1px #962783', 'important');
 }
 
 // Shared utility function for keyboard handling in filter inputs
