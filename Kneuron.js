@@ -954,7 +954,7 @@ function addIDsToElements(elementSelector, idAttribute, textSelector) {
     });
 }
 
-let dividerState = null; // null = unknown, 0 = min, 1 = mid, 2 = max
+let dividerState = null; // null = unknown, 0 = small, 1 = medium, 2 = max
 const DIVIDER_STATES = ['300px', '550px', '800px'];
 
 function toggleDividerMinMax() {
@@ -963,8 +963,8 @@ function toggleDividerMinMax() {
 
     if (dividerState === null) {
         const current = parseInt(toolbox.style.flexBasis) || 0;
-        if (current <= 0) dividerState = 0;
-        else if (current <= 280) dividerState = 1;
+        if (current <= 400) dividerState = 0;
+        else if (current <= 650) dividerState = 1;
         else dividerState = 2;
     }
 
