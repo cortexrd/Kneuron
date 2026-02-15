@@ -1587,14 +1587,14 @@ function addDensityControl() {
 
     levels.forEach(lvl => {
         const radioLabel = document.createElement('label');
-        radioLabel.style.cssText = 'cursor: pointer; display: flex; align-items: center; gap: 2px; font-weight: normal;';
+        radioLabel.style.cssText = 'cursor: pointer; display: inline-flex; align-items: center; gap: 2px; font-weight: normal !important; margin: 0 !important; font-size: 13px !important;';
 
         const radio = document.createElement('input');
         radio.type = 'radio';
         radio.name = 'kneuron-density';
         radio.value = lvl.value;
         radio.checked = (lvl.value === savedDensity);
-        radio.style.cssText = 'margin: 0; cursor: pointer;';
+        radio.style.cssText = 'margin: 0 !important; cursor: pointer;';
 
         radio.addEventListener('change', () => {
             setSetting('verticalDensity', lvl.value);
