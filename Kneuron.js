@@ -699,8 +699,9 @@ function addTablesFilter() {
         let matchFound = false;
 
         listItems.forEach(item => {
-            const spanContent = item.querySelector('span[content]')?.textContent || '';
-            const isMatch = spanContent.toLowerCase().includes(searchLower);
+            const span = item.querySelector('span[content]');
+            const name = (span?.getAttribute('content') || '').replace(/^View /, '').replace(/ records$/, '');
+            const isMatch = name.toLowerCase().includes(searchLower);
             item.style.display = isMatch ? 'block' : 'none';
             item.style.position = isMatch ? 'relative' : 'absolute';
             item.style.height = isMatch ? '' : '0';
