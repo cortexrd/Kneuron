@@ -173,9 +173,7 @@ function applyVerticalDensity(level) {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = densityCSS;
-    const fixStyle = document.getElementById('kneuron-scroller-fix');
-    if (!fixStyle || !fixStyle.textContent) fixScrollerPool();
-    else setTimeout(deduplicatePool, 200);
+    setTimeout(() => fixScrollerPool(true), 200);
 }
 applyVerticalDensity(getSettings().verticalDensity || 'normal');
 
@@ -192,18 +190,25 @@ function deduplicatePool() {
     });
 }
 
-// Force the vue-recycle-scroller to render all items by temporarily expanding its wrapper,
-// then let CSS min-height:auto shrink it back. The pool keeps all rendered items.
-// The scroller renders with Vue's default min-height (items*40px), so all items get
-// valid translateY values. We sort DOM elements by translateY to fix display order
-// (since CSS transform:none makes DOM order = visual order), then shrink the wrapper
-// with a CSS !important rule that persists against Vue's inline style resets.
-function fixScrollerPool() {
+let lastFixViewType = '';
+let fixInProgress = false;
+
+function getViewType() {
+    const url = window.location.href;
+    if (url.includes('/records/')) return 'records';
+    if (url.includes('/schema/')) return 'fields';
+    if (url.includes('/tasks/')) return 'tasks';
+    return url;
+}
+
+function fixScrollerPool(force) {
     const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
     if (!wrapper) return;
-    // Skip if the fix is already applied — re-running would temporarily expand the wrapper and cause scroll jumps
+    if (fixInProgress) return;
+    const currentView = getViewType();
+    if (!force && currentView === lastFixViewType) return;
+    fixInProgress = true;
     let fixStyle = document.getElementById('kneuron-scroller-fix');
-    if (fixStyle && fixStyle.textContent) return;
     if (fixStyle) fixStyle.textContent = '';
     setTimeout(() => {
         const items = Array.from(wrapper.querySelectorAll('.vue-recycle-scroller__item-view'));
@@ -221,11 +226,12 @@ function fixScrollerPool() {
             const navItem = item.querySelector('[id^=object-li-object_], [id^=role-object-nav-object_]');
             const id = navItem?.id;
             if (id && seen.has(id)) {
-                item.remove();
+                item.style.display = 'none';
             } else {
-                wrapper.appendChild(item);
+                item.style.display = '';
                 if (id) seen.add(id);
             }
+            wrapper.appendChild(item);
         });
         if (!fixStyle) {
             fixStyle = document.createElement('style');
@@ -233,7 +239,14 @@ function fixScrollerPool() {
             document.head.appendChild(fixStyle);
         }
         fixStyle.textContent = '#objects-nav .vue-recycle-scroller__item-wrapper { min-height: auto !important; }';
+        lastFixViewType = currentView;
+        fixInProgress = false;
         sortTables();
+
+        const activeItem = wrapper.querySelector('.router-link-active');
+        if (activeItem) {
+            activeItem.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
     }, 200);
 }
 
@@ -276,6 +289,10 @@ const genericObserver = new MutationObserver((mutations) => {
 
             if (mutation.target.querySelector('.kn-search-list-wrapper:not(.reduce-processed)')) {
                 reduceLists('.kn-search-list-wrapper');
+            }
+
+            if (mutation.target.querySelector('#topbar-nav-left:not(:has(#kneuron-density-control))')) {
+                addDensityControl();
             }
 
             if (mutation.target.querySelector('#objects-nav h3.text-emphasis')) {
@@ -476,7 +493,7 @@ document.addEventListener('keydown', async function (event) {
             tablesFilter.value = '';
             tablesFilter.dispatchEvent(new Event('input', { bubbles: true }));
             setTimeout(() => {
-                const activeTable = document.querySelector('#objects-nav .router-link-active a');
+                const activeTable = document.querySelector('#objects-nav .router-link-active');
                 if (activeTable) {
                     activeTable.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 }
@@ -724,7 +741,16 @@ function addTablesFilter() {
                 currentFocusIndex,
                 currentSelectionIndex,
                 onFocusChange: updateListItemFocusStyles,
-                tableScroller
+                tableScroller,
+                onEscape: () => {
+                    setTimeout(() => {
+                        const nav = document.querySelector('#objects-nav');
+                        const activeTable = nav?.querySelector('.router-link-active');
+                        if (activeTable) {
+                            activeTable.scrollIntoView({ block: 'center', behavior: 'instant' });
+                        }
+                    }, 100);
+                }
             });
         });
 
@@ -1536,51 +1562,55 @@ function addStickyColsInput() {
     });
 
     addFiltersBtn.parentNode.insertBefore(container, addFiltersBtn.nextSibling);
+}
 
-    if (!document.querySelector('#kneuron-density-control')) {
-        const densityContainer = document.createElement('span');
-        densityContainer.id = 'kneuron-density-control';
-        densityContainer.style.cssText = 'margin-left: 24px; padding: 4px; display: inline-flex; align-items: center; font-size: 13px; font-weight: normal !important;';
+function addDensityControl() {
+    if (document.querySelector('#kneuron-density-control')) return;
+    const topbarLeft = document.querySelector('#topbar-nav-left');
+    if (!topbarLeft) return;
 
-        const densityLabel = document.createElement('span');
-        densityLabel.textContent = 'Density:';
-        densityLabel.style.cssText = 'margin-right: 6px; color: rgb(var(--content-default));';
-        densityContainer.appendChild(densityLabel);
+    const densityContainer = document.createElement('span');
+    densityContainer.id = 'kneuron-density-control';
+    densityContainer.style.cssText = 'margin-left: 24px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: normal !important; height: 36px;';
 
-        const savedDensity = getSettings().verticalDensity || 'normal';
-        const levels = [
-            { value: 'normal', label: 'Low' },
-            { value: 'medium', label: 'Med' },
-            { value: 'maximum', label: 'High' },
-        ];
+    const densityLabel = document.createElement('span');
+    densityLabel.textContent = 'Density:';
+    densityLabel.style.cssText = 'color: rgb(var(--content-default));';
+    densityContainer.appendChild(densityLabel);
 
-        levels.forEach(lvl => {
-            const radioLabel = document.createElement('label');
-            radioLabel.style.cssText = 'margin-right: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; font-weight: normal;';
+    const savedDensity = getSettings().verticalDensity || 'normal';
+    const levels = [
+        { value: 'normal', label: 'Low' },
+        { value: 'medium', label: 'Med' },
+        { value: 'maximum', label: 'High' },
+    ];
 
-            const radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = 'kneuron-density';
-            radio.value = lvl.value;
-            radio.checked = (lvl.value === savedDensity);
-            radio.style.cssText = 'margin: 0; cursor: pointer;';
+    levels.forEach(lvl => {
+        const radioLabel = document.createElement('label');
+        radioLabel.style.cssText = 'cursor: pointer; display: flex; align-items: center; gap: 2px; font-weight: normal;';
 
-            radio.addEventListener('change', () => {
-                setSetting('verticalDensity', lvl.value);
-                applyVerticalDensity(lvl.value);
-                const filterInput = document.querySelector('#incremental-filter-tables');
-                if (filterInput && filterInput.value) {
-                    filterInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            });
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'kneuron-density';
+        radio.value = lvl.value;
+        radio.checked = (lvl.value === savedDensity);
+        radio.style.cssText = 'margin: 0; cursor: pointer;';
 
-            radioLabel.appendChild(radio);
-            radioLabel.appendChild(document.createTextNode(lvl.label));
-            densityContainer.appendChild(radioLabel);
+        radio.addEventListener('change', () => {
+            setSetting('verticalDensity', lvl.value);
+            applyVerticalDensity(lvl.value);
+            const filterInput = document.querySelector('#incremental-filter-tables');
+            if (filterInput && filterInput.value) {
+                filterInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         });
 
-        container.parentNode.insertBefore(densityContainer, container.nextSibling);
-    }
+        radioLabel.appendChild(radio);
+        radioLabel.appendChild(document.createTextNode(lvl.label));
+        densityContainer.appendChild(radioLabel);
+    });
+
+    topbarLeft.appendChild(densityContainer);
 }
 
 //Sticky columns for Records table

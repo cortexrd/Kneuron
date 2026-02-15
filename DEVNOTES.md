@@ -44,7 +44,17 @@ A 3-phase approach with careful timing:
 
 3. **Phase 3 - Shrink wrapper**: Inject a dynamic `<style id="kneuron-scroller-fix">` with `min-height: auto !important`. This CSS rule persists against Vue's constant inline style resets.
 
-On density change or navigation, the dynamic style is cleared first (letting the scroller re-render at full height), then re-applied after sorting.
+### Guard: view-type tracking
+
+The mutation observer fires `fixScrollerPool()` on every DOM change (including hover). Re-running the expand/sort/shrink cycle on each mutation causes scroll jumps (selected table scrolls off-screen). To prevent this, `fixScrollerPool` tracks the current **view type** (`records`/`fields`/`tasks` extracted from the URL). It only re-runs when the view type changes (e.g., Records→Fields toggle) or when forced (density change passes `force=true`). Selecting a different table stays in the same view type, so the fix is skipped — no scroll jump.
+
+Previous approaches that **didn't work**:
+- **Style-content guard** (`if (fixStyle.textContent) return`): Too aggressive — blocked re-run on view switch entirely, causing missing tables.
+- **Marker-class guard** (`kneuron-fixed` on items): Vue reuses DOM elements on view switch, so markers persisted and the guard still blocked re-run.
+
+### Duplicate items on density change
+
+When density CSS changes item heights, Vue's scroller recalculates the pool and creates duplicate item-views. `deduplicatePool()` removes duplicates by nav-item ID. Called via `setTimeout(deduplicatePool, 200)` before `fixScrollerPool(true)` on density changes.
 
 **Key insight**: Inline `!important` beats stylesheet `!important`, BUT Vue's reactivity sets `element.style.minHeight = 'Xpx'` which strips the `!important` flag. A stylesheet `!important` rule is the only reliable way to override Vue's inline styles persistently.
 
@@ -58,10 +68,24 @@ Uses a dynamic `<style id="kneuron-density-style">` element. The `applyVerticalD
 ### What it affects
 - **Nav items**: `#objects-nav .nav-item a` padding
 - **Record table cells**: `.kn-table-element td` padding and line-height
-- **Scroller pool**: Must call `fixScrollerPool()` after density change
+- **Scroller pool**: Must call `fixScrollerPool(true)` after density change (force flag bypasses view-type guard)
+
+### UI placement
+Density radio buttons (Low/Med/High) are injected into `#topbar-nav-left` (the persistent header bar with app name). This makes them visible across all views: Data, Pages, Records, Fields. The `addDensityControl()` function is triggered by the mutation observer when `#topbar-nav-left` appears without `#kneuron-density-control`.
 
 ### Filter recalculation
 When density changes while a table filter is active, the filter's scroller height calculation uses `sampleItem.offsetHeight` to measure actual item height dynamically. The density radio button handler re-dispatches the filter's `input` event to trigger recalculation.
+
+---
+
+## Table Sorting
+
+Optional alphabetical sorting of tables in the left nav, toggled via an ABC/abc button in the Tables header (next to the filter input).
+
+- `sortTables()` sorts `.vue-recycle-scroller__item-view` elements by their `span[content]` attribute (stripping "View " prefix and " records" suffix)
+- Called at the end of `fixScrollerPool()` after items are sorted by translateY and deduplicated
+- Setting stored as `tableSorting` in localStorage (`'true'`/`'false'`)
+- Toggle button triggers `location.reload()` to ensure clean re-render
 
 ---
 
@@ -88,11 +112,14 @@ All settings stored under a single `Kneuron` key as JSON. Access via:
 - `getSettings()` — returns parsed object or `{}`
 - `setSetting(key, value)` — merges into existing object
 
-Properties: `stickyCols`, `pageSorting`, `verticalDensity`, `recordCounts`
+Properties: `stickyCols`, `pageSorting`, `verticalDensity`, `tableSorting`, `recordCounts`
 
 ---
 
 ## CSS Specificity Battles
+
+### Accounts user role in tables filter
+The Accounts element uses `<li data-cy="nav-account-link">` with NO `id` attribute (unlike regular tables which have `id="object-li-object_X"`). The filter selectors include `[data-cy="nav-account-link"].nav-item` in addition to the id-based selectors.
 
 ### Bold labels on density radio buttons
 Knack's CSS rule `form>div label { font-weight: 600 }` targets `<label>` elements directly. Adding `font-weight: normal` to a parent container doesn't override it. Fix: set `font-weight: normal` as inline style on each `<label>` element (inline styles beat stylesheet rules at same specificity).
