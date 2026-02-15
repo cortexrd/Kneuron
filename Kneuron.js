@@ -124,6 +124,40 @@ div.kn-view .kn-table-cell.truncate-cell span {
 `;
 injectCSS(css);
 
+function getSettings() {
+    try { return JSON.parse(localStorage.getItem('Kneuron')) || {}; } catch { return {}; }
+}
+
+function setSetting(key, value) {
+    const s = getSettings();
+    s[key] = value;
+    localStorage.setItem('Kneuron', JSON.stringify(s));
+}
+
+
+function applyVerticalDensity(level) {
+    let densityCSS = '';
+    if (level === 'medium') {
+        densityCSS = `
+            #objects-nav .nav-item a { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
+            .kn-table-element td { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; line-height: 1.4 !important; }
+        `;
+    } else if (level === 'maximum') {
+        densityCSS = `
+            #objects-nav .nav-item a { padding-top: 0 !important; padding-bottom: 0 !important; }
+            .kn-table-element td { padding-top: 0.10rem !important; padding-bottom: 0.10rem !important; line-height: 1.2 !important; }
+        `;
+    }
+    let styleEl = document.getElementById('kneuron-density-style');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'kneuron-density-style';
+        document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = densityCSS;
+}
+applyVerticalDensity(getSettings().verticalDensity || 'normal');
+
 // Generic MutationObserver to watch for HTML changes and take action.
 const genericObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
@@ -201,7 +235,7 @@ const genericObserver = new MutationObserver((mutations) => {
 
             if (mutation.target.querySelector('#records-body-wrapper table:not(.kneuronStickyColumns)')) {
                 if (window.location.href.includes('/records/')) {
-                    const colCount = parseInt(localStorage.getItem('kneuron-sticky-cols') || '0');
+                    const colCount = parseInt(getSettings().stickyCols || '0');
                     if (colCount > 0) {
                         applyStickyCols(colCount + 2);
                     }
@@ -553,8 +587,8 @@ function addTablesFilter() {
             searchEmpty = e.target.value === "";
             const filteredListItems = getFilteredListItems(searchEmpty);
 
-            // Calculate height dynamically based on items
-            const itemHeight = 42;
+            const sampleItem = document.querySelector('#objects-nav .nav-item');
+            const itemHeight = sampleItem ? sampleItem.offsetHeight : 42;
             const calculatedHeight = filteredListItems.length * itemHeight;
 
             // Adjust scroller styles
@@ -958,7 +992,7 @@ let dividerState = null; // null = unknown, 0 = small, 1 = medium, 2 = max
 const DIVIDER_STATES = ['300px', '550px', '800px'];
 
 function toggleDividerMinMax() {
-    const toolbox = document.querySelector('#schema-toolbox');
+    const toolbox = document.querySelector('.builderLayout_toolbox');
     if (!toolbox) return;
 
     if (dividerState === null) {
@@ -1103,19 +1137,16 @@ function truncateCellText(selector = '.kn-table-element td:not(#kn-email-history
 
 //Add recourd counts to tables in the sidebar - BEGIN
 const recordCountCache = {
-    CACHE_KEY: 'kneuron-record-counts',
     CACHE_DURATION: 60 * 60 * 1000, // 1 hour
 
     get() {
-        try {
-            return JSON.parse(localStorage.getItem(this.CACHE_KEY)) || {};
-        } catch { return {}; }
+        return getSettings().recordCounts || {};
     },
 
     set(objectId, count) {
         const cache = this.get();
         cache[objectId] = { count, timestamp: Date.now() };
-        localStorage.setItem(this.CACHE_KEY, JSON.stringify(cache));
+        setSetting('recordCounts', cache);
     },
 
     getCachedCount(objectId) {
@@ -1233,7 +1264,7 @@ injectPageScript();
 
 
 //Sort pages alphabetically - BEGIN
-let pageSortingEnabled = localStorage.getItem('kneuron-page-sorting') !== 'false';
+let pageSortingEnabled = getSettings().pageSorting !== 'false';
 
 function sortPages() {
     if (!pageSortingEnabled) return;
@@ -1291,7 +1322,7 @@ function addPageSortToggle() {
         e.stopPropagation();
 
         pageSortingEnabled = !pageSortingEnabled;
-        localStorage.setItem('kneuron-page-sorting', pageSortingEnabled.toString());
+        setSetting('pageSorting', pageSortingEnabled.toString());
 
         toggleButton.style.background = pageSortingEnabled ? '#ffeffc' : '#f5f5f5';
         toggleButton.textContent = pageSortingEnabled ? 'ABC' : 'abc';
@@ -1322,7 +1353,7 @@ function addStickyColsInput() {
     input.type = 'number';
     input.min = '0';
     input.max = '10';
-    input.value = localStorage.getItem('kneuron-sticky-cols') || '0';
+    input.value = getSettings().stickyCols || '0';
     input.title = 'Additional sticky columns after checkbox and actions (0 = disabled)';
     input.style.cssText = 'width: 50px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 8px; text-align: center;';
 
@@ -1331,7 +1362,7 @@ function addStickyColsInput() {
 
     input.addEventListener('change', () => {
         const colCount = parseInt(input.value) || 0;
-        localStorage.setItem('kneuron-sticky-cols', colCount.toString());
+        setSetting('stickyCols', colCount.toString());
 
         const table = document.querySelector('#records-body-wrapper table.kneuronStickyColumns');
         if (table) {
@@ -1351,6 +1382,51 @@ function addStickyColsInput() {
     });
 
     addFiltersBtn.parentNode.insertBefore(container, addFiltersBtn.nextSibling);
+
+    if (!document.querySelector('#kneuron-density-control')) {
+        const densityContainer = document.createElement('span');
+        densityContainer.id = 'kneuron-density-control';
+        densityContainer.style.cssText = 'margin-left: 24px; padding: 4px; display: inline-flex; align-items: center; font-size: 13px; font-weight: normal !important;';
+
+        const densityLabel = document.createElement('span');
+        densityLabel.textContent = 'Density:';
+        densityLabel.style.cssText = 'margin-right: 6px; color: rgb(var(--content-default));';
+        densityContainer.appendChild(densityLabel);
+
+        const savedDensity = getSettings().verticalDensity || 'normal';
+        const levels = [
+            { value: 'normal', label: 'Low' },
+            { value: 'medium', label: 'Med' },
+            { value: 'maximum', label: 'High' },
+        ];
+
+        levels.forEach(lvl => {
+            const radioLabel = document.createElement('label');
+            radioLabel.style.cssText = 'margin-right: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; font-weight: normal;';
+
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'kneuron-density';
+            radio.value = lvl.value;
+            radio.checked = (lvl.value === savedDensity);
+            radio.style.cssText = 'margin: 0; cursor: pointer;';
+
+            radio.addEventListener('change', () => {
+                setSetting('verticalDensity', lvl.value);
+                applyVerticalDensity(lvl.value);
+                const filterInput = document.querySelector('#incremental-filter-tables');
+                if (filterInput && filterInput.value) {
+                    filterInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+
+            radioLabel.appendChild(radio);
+            radioLabel.appendChild(document.createTextNode(lvl.label));
+            densityContainer.appendChild(radioLabel);
+        });
+
+        container.parentNode.insertBefore(densityContainer, container.nextSibling);
+    }
 }
 
 //Sticky columns for Records table
