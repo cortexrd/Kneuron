@@ -37,6 +37,13 @@ const css = `
     position: relative !important;
 }
 
+#objects-nav .vue-recycle-scroller.kneuron-filtering .vue-recycle-scroller__item-view {
+    display: none !important;
+}
+#objects-nav .vue-recycle-scroller.kneuron-filtering .vue-recycle-scroller__item-view.kneuron-filter-match {
+    display: block !important;
+}
+
 #records-history .kn-table-element {
     height: 78vh;
 }
@@ -166,8 +173,42 @@ function applyVerticalDensity(level) {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = densityCSS;
+    fixScrollerPool();
 }
 applyVerticalDensity(getSettings().verticalDensity || 'normal');
+
+// Force the vue-recycle-scroller to render all items by temporarily expanding its wrapper,
+// then let CSS min-height:auto shrink it back. The pool keeps all rendered items.
+// The scroller renders with Vue's default min-height (items*40px), so all items get
+// valid translateY values. We sort DOM elements by translateY to fix display order
+// (since CSS transform:none makes DOM order = visual order), then shrink the wrapper
+// with a CSS !important rule that persists against Vue's inline style resets.
+function fixScrollerPool() {
+    const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
+    if (!wrapper) return;
+    // Remove the shrink rule so the scroller renders at full height with all items positioned
+    let fixStyle = document.getElementById('kneuron-scroller-fix');
+    if (fixStyle) fixStyle.textContent = '';
+    setTimeout(() => {
+        const items = Array.from(wrapper.querySelectorAll('.vue-recycle-scroller__item-view'));
+        items.sort((a, b) => {
+            const getY = (el) => {
+                const m = el.style.transform.match(/translateY\((-?\d+)px\)/);
+                if (!m) return Infinity;
+                const y = parseInt(m[1]);
+                return y < 0 ? Infinity : y;
+            };
+            return getY(a) - getY(b);
+        });
+        items.forEach(item => wrapper.appendChild(item));
+        if (!fixStyle) {
+            fixStyle = document.createElement('style');
+            fixStyle.id = 'kneuron-scroller-fix';
+            document.head.appendChild(fixStyle);
+        }
+        fixStyle.textContent = '#objects-nav .vue-recycle-scroller__item-wrapper { min-height: auto !important; }';
+    }, 200);
+}
 
 // Generic MutationObserver to watch for HTML changes and take action.
 const genericObserver = new MutationObserver((mutations) => {
@@ -195,6 +236,7 @@ const genericObserver = new MutationObserver((mutations) => {
 
             if (mutation.target.querySelector('#objects-nav h3.text-emphasis')) {
                 addTablesFilter();
+                fixScrollerPool();
             }
 
             if (mutation.target.querySelector('#view-add-items')) {
@@ -596,10 +638,11 @@ function addTablesFilter() {
             searchInput.style.backgroundColor = hasMatches ? 'white' : ERROR_COLOR;
 
             searchEmpty = e.target.value === "";
+            if (tableScroller) tableScroller.classList.toggle('kneuron-filtering', !searchEmpty);
             const filteredListItems = getFilteredListItems(searchEmpty);
 
-            const sampleItem = document.querySelector('#objects-nav .nav-item');
-            const itemHeight = sampleItem ? sampleItem.offsetHeight : 42;
+            const sampleItem = filteredListItems[0] || document.querySelector('#objects-nav .nav-item');
+            const itemHeight = sampleItem ? sampleItem.offsetHeight || 42 : 42;
             const calculatedHeight = filteredListItems.length * itemHeight;
 
             // Adjust scroller styles
@@ -642,6 +685,8 @@ function addTablesFilter() {
             item.style.height = isMatch ? '' : '0';
             item.style.margin = isMatch ? '' : '0';
             item.style.padding = isMatch ? '' : '0';
+            const itemView = item.closest('.vue-recycle-scroller__item-view');
+            if (itemView) itemView.classList.toggle('kneuron-filter-match', isMatch);
             if (isMatch) matchFound = true;
         });
 
