@@ -158,12 +158,12 @@ function applyVerticalDensity(level) {
     if (level === 'medium') {
         densityCSS = `
             #objects-nav .nav-item a { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
-            .kn-table-element td { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; line-height: 1.4 !important; }
+            .kn-table-element td { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; line-height: 1.2 !important; }
         `;
     } else if (level === 'maximum') {
         densityCSS = `
             #objects-nav .nav-item a { padding-top: 0 !important; padding-bottom: 0 !important; }
-            .kn-table-element td { padding-top: 0.10rem !important; padding-bottom: 0.10rem !important; line-height: 1.2 !important; }
+            .kn-table-element td { padding-top: 0.30rem !important; padding-bottom: 0.30rem !important; line-height: 1.0 !important; }
         `;
     }
     let styleEl = document.getElementById('kneuron-density-style');
@@ -201,8 +201,9 @@ function deduplicatePool() {
 function fixScrollerPool() {
     const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
     if (!wrapper) return;
-    // Remove the shrink rule so the scroller renders at full height with all items positioned
+    // Skip if the fix is already applied — re-running would temporarily expand the wrapper and cause scroll jumps
     let fixStyle = document.getElementById('kneuron-scroller-fix');
+    if (fixStyle && fixStyle.textContent) return;
     if (fixStyle) fixStyle.textContent = '';
     setTimeout(() => {
         const items = Array.from(wrapper.querySelectorAll('.vue-recycle-scroller__item-view'));
@@ -232,7 +233,25 @@ function fixScrollerPool() {
             document.head.appendChild(fixStyle);
         }
         fixStyle.textContent = '#objects-nav .vue-recycle-scroller__item-wrapper { min-height: auto !important; }';
+        sortTables();
     }, 200);
+}
+
+let tableSortingEnabled = getSettings().tableSorting !== 'false';
+
+function sortTables() {
+    if (!tableSortingEnabled) return;
+    const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
+    if (!wrapper) return;
+    const items = Array.from(wrapper.querySelectorAll('.vue-recycle-scroller__item-view'));
+    items.sort((a, b) => {
+        const getName = (el) => {
+            const span = el.querySelector('span[content]');
+            return (span?.getAttribute('content') || '').replace(/^View /, '').replace(/ records$/, '');
+        };
+        return getName(a).localeCompare(getName(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    items.forEach(item => wrapper.appendChild(item));
 }
 
 // Generic MutationObserver to watch for HTML changes and take action.
@@ -636,7 +655,6 @@ function addTablesFilter() {
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'Filter tables...';
-        searchInput.style.marginLeft = '30px';
         searchInput.style.padding = '2px 5px';
         searchInput.style.fontSize = '14px';
         searchInput.style.borderRadius = '8px';
@@ -715,11 +733,44 @@ function addTablesFilter() {
             updateListItemFocusStyles(-1, currentSelectionIndex, filteredListItems);
         });
 
+        if (!document.querySelector('#table-sort-toggle')) {
+            const toggleButton = document.createElement('button');
+            toggleButton.id = 'table-sort-toggle';
+            toggleButton.style.cssText = `
+                margin-right: 8px;
+                margin-left: 30px;
+                padding: 2px 6px;
+                font-size: 12px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                background: ${tableSortingEnabled ? '#ffeffc' : '#f5f5f5'};
+                color: black;
+                cursor: pointer;
+                height: 35px;
+                width: 50px;
+                vertical-align: middle;
+            `;
+            toggleButton.textContent = tableSortingEnabled ? 'ABC' : 'abc';
+            toggleButton.title = `Table sorting ${tableSortingEnabled ? 'enabled' : 'disabled'} - click to toggle`;
+
+            toggleButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                tableSortingEnabled = !tableSortingEnabled;
+                setSetting('tableSorting', tableSortingEnabled.toString());
+                toggleButton.style.background = tableSortingEnabled ? '#ffeffc' : '#f5f5f5';
+                toggleButton.textContent = tableSortingEnabled ? 'ABC' : 'abc';
+                toggleButton.title = `Table sorting ${tableSortingEnabled ? 'enabled' : 'disabled'} - click to toggle`;
+                location.reload();
+            });
+
+            tablesTitle.appendChild(toggleButton);
+        }
         tablesTitle.appendChild(searchInput);
     }
 
     function filterListItems(searchText) {
-        const listItems = document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item');
+        const listItems = document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item, [data-cy="nav-account-link"].nav-item');
         const searchLower = searchText.toLowerCase();
         let matchFound = false;
 
@@ -1110,7 +1161,7 @@ function toggleDividerMinMax() {
 }
 
 function getFilteredListItems(searchEmpty) {
-    const listItems = Array.from(document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item'));
+    const listItems = Array.from(document.querySelectorAll('[id^=object-li-object_].nav-item, [id^=role-object-nav-object_].nav-item, [data-cy="nav-account-link"].nav-item'));
     return searchEmpty ? listItems : listItems.filter(item => getComputedStyle(item).display === 'block');
 }
 
