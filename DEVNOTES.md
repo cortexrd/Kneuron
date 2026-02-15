@@ -44,17 +44,26 @@ A 3-phase approach with careful timing:
 
 3. **Phase 3 - Shrink wrapper**: Inject a dynamic `<style id="kneuron-scroller-fix">` with `min-height: auto !important`. This CSS rule persists against Vue's constant inline style resets.
 
-### Guard: view-type tracking
+### Guard: view-type + fixInProgress
 
-The mutation observer fires `fixScrollerPool()` on every DOM change (including hover). Re-running the expand/sort/shrink cycle on each mutation causes scroll jumps (selected table scrolls off-screen). To prevent this, `fixScrollerPool` tracks the current **view type** (`records`/`fields`/`tasks` extracted from the URL). It only re-runs when the view type changes (e.g., Records→Fields toggle) or when forced (density change passes `force=true`). Selecting a different table stays in the same view type, so the fix is skipped — no scroll jump.
+The mutation observer fires `fixScrollerPool()` on every DOM change (including hover). Two guards prevent unnecessary re-runs:
+
+1. **`lastFixViewType`**: Tracks the current view type (`records`/`fields`/`tasks` from URL). Only re-runs when the view type changes (e.g., Records→Fields toggle) or when forced (density change passes `force=true`). Selecting a different table stays in the same view type, so the fix is skipped — no scroll jump.
+
+2. **`fixInProgress`**: Boolean flag prevents re-entrant calls during the 200ms expand window. Without this, mutations triggered by the expand phase would start overlapping sort+reorder cycles.
+
+**Why it must re-run on view switches**: Vue recreates the scroller on SPA view switches with only ~13 pool items (based on viewport). Without fixScrollerPool, most tables disappear.
+
+**Scroll preservation**: After sort+dedup, calls `scrollIntoView({ block: 'center', behavior: 'instant' })` on the `.router-link-active` element to compensate for the DOM reorder shifting the selected table off-screen.
 
 Previous approaches that **didn't work**:
 - **Style-content guard** (`if (fixStyle.textContent) return`): Too aggressive — blocked re-run on view switch entirely, causing missing tables.
 - **Marker-class guard** (`kneuron-fixed` on items): Vue reuses DOM elements on view switch, so markers persisted and the guard still blocked re-run.
+- **`hasFixedPool` one-shot guard**: Blocked ALL re-runs after first load. Vue recreates the scroller on view switches with only ~13 items, but fixScrollerPool was blocked from expanding it.
 
 ### Duplicate items on density change
 
-When density CSS changes item heights, Vue's scroller recalculates the pool and creates duplicate item-views. `deduplicatePool()` removes duplicates by nav-item ID. Called via `setTimeout(deduplicatePool, 200)` before `fixScrollerPool(true)` on density changes.
+When density CSS changes item heights, Vue's scroller recalculates the pool and creates duplicate item-views. Duplicates are hidden with `display: none` (not removed) inside `fixScrollerPool()` to preserve the pool size. Using `item.remove()` permanently shrinks the pool and Vue won't recreate removed elements.
 
 **Key insight**: Inline `!important` beats stylesheet `!important`, BUT Vue's reactivity sets `element.style.minHeight = 'Xpx'` which strips the `!important` flag. A stylesheet `!important` rule is the only reliable way to override Vue's inline styles persistently.
 
@@ -113,6 +122,27 @@ All settings stored under a single `Kneuron` key as JSON. Access via:
 - `setSetting(key, value)` — merges into existing object
 
 Properties: `stickyCols`, `pageSorting`, `verticalDensity`, `tableSorting`, `recordCounts`
+
+---
+
+## Active Table Selector
+
+The selected/active table in the left nav has class `router-link-active` directly on the `<a>` tag, NOT on a `.nav-item` wrapper. The `<a>` sits directly inside `.vue-recycle-scroller__item-view`.
+
+**Correct**: `.router-link-active`
+**Wrong**: `.nav-item.active`, `.nav-item .router-link-active`
+
+This affects all `scrollIntoView` calls: `fixScrollerPool`, tables filter `onEscape`, and the global Escape handler.
+
+---
+
+## Tables Filter Escape Behavior
+
+When Escape is pressed in the tables filter:
+1. `handleFilterKeydown` clears the input, dispatches `input` event, blurs, resets scroller height
+2. The `onEscape` callback (100ms delay) finds `.router-link-active` and scrolls it to center
+
+The Pages filter already had this pattern; the Tables filter was missing it.
 
 ---
 
