@@ -173,9 +173,24 @@ function applyVerticalDensity(level) {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = densityCSS;
-    fixScrollerPool();
+    const fixStyle = document.getElementById('kneuron-scroller-fix');
+    if (!fixStyle || !fixStyle.textContent) fixScrollerPool();
+    else setTimeout(deduplicatePool, 200);
 }
 applyVerticalDensity(getSettings().verticalDensity || 'normal');
+
+function deduplicatePool() {
+    const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
+    if (!wrapper) return;
+    const items = Array.from(wrapper.querySelectorAll('.vue-recycle-scroller__item-view'));
+    const seen = new Set();
+    items.forEach(item => {
+        const navItem = item.querySelector('[id^=object-li-object_], [id^=role-object-nav-object_]');
+        const id = navItem?.id;
+        if (id && seen.has(id)) item.remove();
+        else if (id) seen.add(id);
+    });
+}
 
 // Force the vue-recycle-scroller to render all items by temporarily expanding its wrapper,
 // then let CSS min-height:auto shrink it back. The pool keeps all rendered items.
@@ -200,7 +215,17 @@ function fixScrollerPool() {
             };
             return getY(a) - getY(b);
         });
-        items.forEach(item => wrapper.appendChild(item));
+        const seen = new Set();
+        items.forEach(item => {
+            const navItem = item.querySelector('[id^=object-li-object_], [id^=role-object-nav-object_]');
+            const id = navItem?.id;
+            if (id && seen.has(id)) {
+                item.remove();
+            } else {
+                wrapper.appendChild(item);
+                if (id) seen.add(id);
+            }
+        });
         if (!fixStyle) {
             fixStyle = document.createElement('style');
             fixStyle.id = 'kneuron-scroller-fix';
