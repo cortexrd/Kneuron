@@ -624,6 +624,26 @@ function addTablesFilter() {
         let currentSelectionIndex = -1;
         let searchEmpty = true;
         let tableScroller;
+        let filterObserver = null;
+
+        function startFilterObserver() {
+            if (filterObserver) return;
+            const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
+            if (!wrapper) return;
+            filterObserver = new MutationObserver(() => {
+                filterObserver.disconnect();
+                filterListItems(searchInput.value);
+                filterObserver.observe(wrapper, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+            });
+            filterObserver.observe(wrapper, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        }
+
+        function stopFilterObserver() {
+            if (filterObserver) {
+                filterObserver.disconnect();
+                filterObserver = null;
+            }
+        }
 
         searchInput.addEventListener('focus', () => {
             const filteredListItems = getFilteredListItems(searchEmpty);
@@ -639,6 +659,7 @@ function addTablesFilter() {
 
             searchEmpty = e.target.value === "";
             if (tableScroller) tableScroller.classList.toggle('kneuron-filtering', !searchEmpty);
+            if (searchEmpty) stopFilterObserver(); else startFilterObserver();
             const filteredListItems = getFilteredListItems(searchEmpty);
 
             const sampleItem = filteredListItems[0] || document.querySelector('#objects-nav .nav-item');
