@@ -121,6 +121,17 @@ div.kn-view .kn-table-cell.truncate-cell span {
 .form-wrapper .kn-input-rich_text .redactor-editor{
     max-height: 500px !important;
 }
+
+.kn-table-element tbody tr:hover {
+    box-shadow: inset 0 0 8px 1px rgba(245, 143, 228, 0.3);
+}
+.kn-table-element tbody tr:hover td {
+    background-color: rgba(255, 209, 248, 0.06) !important;
+}
+.kn-table-element tbody tr:hover td.kneuron-sticky {
+    background-color: #fffcfe !important;
+    box-shadow: inset 0 8px 8px -7px rgba(245, 143, 228, 0.3), inset 0 -8px 8px -7px rgba(245, 143, 228, 0.3);
+}
 `;
 injectCSS(css);
 
@@ -1473,6 +1484,7 @@ function applyStickyCols(columnCount = 3) {
             td.style.left = positions[i] + 'px';
             td.style.zIndex = '1';
             td.style.backgroundColor = bgColor;
+            td.classList.add('kneuron-sticky');
         }
     });
 }
