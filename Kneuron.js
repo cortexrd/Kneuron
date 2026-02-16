@@ -750,7 +750,7 @@ function addTablesFilter() {
         const density = getSettings().verticalDensity || 'normal';
         const needsDense = density !== 'normal' || tableSortingEnabled;
         objectsNav.classList.toggle('kneuron-dense', needsDense);
-        if (needsDense) {
+        if (needsDense && !document.querySelector('#incremental-filter-tables')) {
             fixScrollerPool(true);
         }
     } else {

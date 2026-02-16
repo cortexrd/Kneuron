@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Kneuron",
-    "version": "1.13.0",
+    "version": "1.13.1",
     "description": "Utility for Knack's Builder, by Cortex R&D Inc.",
     "icons": {
         "16": "Kneuron-Icon128.png",

@@ -60,13 +60,15 @@ A 3-phase approach with careful timing:
 
 3. **Phase 3 - Shrink wrapper**: Inject a dynamic `<style id="kneuron-scroller-fix">` with `min-height: auto !important`. This CSS rule persists against Vue's constant inline style resets.
 
-### Guard: view-type + fixInProgress
+### Guard: view-type + fixInProgress + filter-exists
 
-The mutation observer fires `fixScrollerPool()` on every DOM change (including hover). Two guards prevent unnecessary re-runs:
+The mutation observer fires `fixScrollerPool()` on every DOM change (including hover). Three guards prevent unnecessary re-runs:
 
 1. **`lastFixViewType`**: Tracks the current view type (`records`/`fields`/`tasks` from URL). Only re-runs when the view type changes (e.g., Records→Fields toggle) or when forced (density change passes `force=true`). Selecting a different table stays in the same view type, so the fix is skipped — no scroll jump.
 
 2. **`fixInProgress`**: Boolean flag prevents re-entrant calls during the 200ms expand window. Without this, mutations triggered by the expand phase would start overlapping sort+reorder cycles.
+
+3. **Filter-exists guard in `addTablesFilter()`**: The `fixScrollerPool(true)` call inside `addTablesFilter()` is gated by `!document.querySelector('#incremental-filter-tables')`. Without this, every mutation matching `#objects-nav h3.text-emphasis` would call `fixScrollerPool(true)` with force, bypassing the view-type guard, causing an infinite loop: DOM changes → mutation → force fix → DOM changes → ... This manifested as constant flickering in the User Roles section at Med/High density.
 
 **Why it must re-run on view switches**: Vue recreates the scroller on SPA view switches with only ~13 pool items (based on viewport). Without fixScrollerPool, most tables disappear.
 
@@ -153,6 +155,15 @@ Sticky columns have `position: sticky` with an opaque `background-color` set by 
    ```css
    box-shadow: inset 0 8px 8px -7px ..., inset 0 -8px 8px -7px ...;
    ```
+
+### Editable cells in sticky columns
+Editable cells (`.editable`) in sticky columns need special treatment:
+- **Row hover**: Gets the same `#fffcfe` background + inset box-shadow as other sticky cells (overrides the inline white background set by `applyStickyCols()`)
+- **Direct cell hover**: Gets Knack's brand color via `rgb(var(--brand-50))` with `!important` to override the inline style. Uses `tr:hover td.kneuron-sticky.editable:hover` (higher specificity than the row-hover rule)
+- **Non-sticky editable cells**: Excluded from the row-hover background via `:not(.editable)`, allowing Knack's native pink highlight to show
+
+### Default sticky columns (stickyCols = 0)
+Knack applies `position: sticky` to the first 2 columns (checkbox + actions) by default. When `stickyCols = 0`, the mutation observer still adds `.kneuron-sticky` to these 2 cells per row so they get proper opaque backgrounds on hover, preventing text bleed-through on horizontal scroll.
 
 ### CSS class marker
 `applyStickyCols()` adds `.kneuron-sticky` class to each sticky `<td>`, enabling targeted CSS for hover highlights.
