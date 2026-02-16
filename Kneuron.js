@@ -141,12 +141,19 @@ div.kn-view .kn-table-cell.truncate-cell span {
 .kn-table-element tbody tr:hover {
     box-shadow: inset 0 0 8px 1px rgba(245, 143, 228, 0.3);
 }
-.kn-table-element tbody tr:hover td {
+.kn-table-element tbody tr:hover td:not(.editable) {
     background-color: rgba(255, 209, 248, 0.06) !important;
 }
-.kn-table-element tbody tr:hover td.kneuron-sticky {
+.kn-table-element tbody tr:hover td.kneuron-sticky:not(.editable) {
     background-color: #fffcfe !important;
     box-shadow: inset 0 8px 8px -7px rgba(245, 143, 228, 0.3), inset 0 -8px 8px -7px rgba(245, 143, 228, 0.3);
+}
+.kn-table-element tbody tr:hover td.kneuron-sticky.editable {
+    background-color: #fffcfe !important;
+    box-shadow: inset 0 8px 8px -7px rgba(245, 143, 228, 0.3), inset 0 -8px 8px -7px rgba(245, 143, 228, 0.3);
+}
+.kn-table-element tbody tr:hover td.kneuron-sticky.editable:hover {
+    background-color: rgb(var(--brand-50)) !important;
 }
 
 .kneuron-sort-warning {
@@ -413,6 +420,16 @@ const genericObserver = new MutationObserver((mutations) => {
                     const colCount = parseInt(getSettings().stickyCols || '0');
                     if (colCount > 0) {
                         applyStickyCols(colCount + 2);
+                    } else {
+                        const table = document.querySelector('#records-body-wrapper table:not(.kneuronStickyColumns)');
+                        if (table) {
+                            table.querySelectorAll('tbody tr').forEach(row => {
+                                const cells = row.querySelectorAll('td');
+                                for (let i = 0; i < 2 && i < cells.length; i++) {
+                                    cells[i].classList.add('kneuron-sticky');
+                                }
+                            });
+                        }
                     }
                 }
             }
