@@ -158,11 +158,13 @@ function applyVerticalDensity(level) {
     if (level === 'medium') {
         densityCSS = `
             #objects-nav .nav-item a { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
+            #pages-nav .nav-item > a { padding-top: 2px !important; padding-bottom: 2px !important; }
             .kn-table-element td { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; line-height: 1.2 !important; }
         `;
     } else if (level === 'maximum') {
         densityCSS = `
             #objects-nav .nav-item a { padding-top: 0 !important; padding-bottom: 0 !important; }
+            #pages-nav .nav-item > a { padding-top: 0 !important; padding-bottom: 0 !important; }
             .kn-table-element td { padding-top: 0.30rem !important; padding-bottom: 0.30rem !important; line-height: 1.0 !important; }
         `;
     }
