@@ -32,9 +32,18 @@ const css = `
    height: 30em;
 }
 
-#objects-nav .vue-recycle-scroller__item-view {
+#objects-nav .vue-recycle-scroller__item-view:not(.draggable-mirror) {
     transform: none !important;
     position: relative !important;
+}
+#objects-nav .vue-recycle-scroller__item-view.kneuron-dupe-hide {
+    max-height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    visibility: hidden !important;
 }
 
 #objects-nav .vue-recycle-scroller.kneuron-filtering .vue-recycle-scroller__item-view {
@@ -281,22 +290,6 @@ function fixScrollerPool(force) {
         const activeItem = wrapper.querySelector('.router-link-active');
         if (activeItem) {
             activeItem.scrollIntoView({ block: 'center', behavior: 'instant' });
-        }
-
-        if (!wrapper._kneuronDupWatcher) {
-            wrapper._kneuronDupWatcher = true;
-            new MutationObserver(() => {
-                const seen = new Set();
-                wrapper.querySelectorAll('.vue-recycle-scroller__item-view').forEach(item => {
-                    const navItem = item.querySelector('[id^=object-li-object_], [id^=role-object-nav-object_]');
-                    const id = navItem?.id;
-                    if (id && seen.has(id)) {
-                        item.style.display = 'none';
-                    } else if (id) {
-                        seen.add(id);
-                    }
-                });
-            }).observe(wrapper, { childList: true });
         }
     }, 200);
 }
@@ -885,6 +878,64 @@ function addTablesFilter() {
             }
         }
         tablesTitle.appendChild(searchInput);
+
+        const scrollerWrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
+        if (scrollerWrapper) {
+            function hideDuplicates() {
+                const seen = new Map();
+                const items = scrollerWrapper.querySelectorAll('.vue-recycle-scroller__item-view:not(.draggable-mirror)');
+                for (const item of items) {
+                    const link = item.querySelector('a[href*="/objects/object_"]');
+                    if (!link) continue;
+                    const href = link.getAttribute('href');
+                    if (seen.has(href)) {
+                        const prev = seen.get(href);
+                        const prevIsPool = prev.style.transform && prev.style.transform.includes('-9999');
+                        const target = prevIsPool ? prev : (item.style.transform && item.style.transform.includes('-9999')) ? item : null;
+                        if (target && !target.classList.contains('kneuron-dupe-hide')) {
+                            target.classList.add('kneuron-dupe-hide');
+                            const recycleObs = new MutationObserver(() => {
+                                if (!target.style.transform || !target.style.transform.includes('-9999')) {
+                                    target.classList.remove('kneuron-dupe-hide');
+                                    recycleObs.disconnect();
+                                }
+                            });
+                            recycleObs.observe(target, { attributes: true, attributeFilter: ['style'] });
+                        }
+                    } else {
+                        seen.set(href, item);
+                    }
+                }
+            }
+
+            let dragging = false;
+            new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    for (const node of m.addedNodes) {
+                        if (node.nodeType === 1 && node.classList.contains('draggable-mirror'))
+                            dragging = true;
+                    }
+                    for (const node of m.removedNodes) {
+                        if (node.nodeType === 1 && node.classList.contains('draggable-mirror')) {
+                            dragging = false;
+                            setTimeout(() => {
+                                const radios = [...document.querySelectorAll('input[name="kneuron-density"]')];
+                                const currentIdx = radios.findIndex(r => r.checked);
+                                const adjacentIdx = currentIdx > 0 ? currentIdx - 1 : 1;
+                                if (radios[adjacentIdx] && radios[currentIdx]) {
+                                    radios[adjacentIdx].click();
+                                    setTimeout(() => {
+                                        radios[currentIdx].click();
+                                        setTimeout(hideDuplicates, 50);
+                                    }, 50);
+                                }
+                            }, 100);
+                        }
+                    }
+                }
+                if (!dragging) hideDuplicates();
+            }).observe(scrollerWrapper, { childList: true });
+        }
     }
 
     function filterListItems(searchText) {
