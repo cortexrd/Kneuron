@@ -24,7 +24,8 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "page-script.js"
+                "page-script.js",
+                "drag-block-page.js"
             ],
             "matches": [
                 "https://builder.knack.com/*"
@@ -32,6 +33,15 @@
         }
     ],
     "content_scripts": [
+        {
+            "matches": [
+                "https://builder.knack.com/*"
+            ],
+            "js": [
+                "drag-block-inject.js"
+            ],
+            "run_at": "document_start"
+        },
         {
             "matches": [
                 "https://builder.knack.com/*"

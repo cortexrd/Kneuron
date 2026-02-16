@@ -139,6 +139,39 @@ div.kn-view .kn-table-cell.truncate-cell span {
     background-color: #fffcfe !important;
     box-shadow: inset 0 8px 8px -7px rgba(245, 143, 228, 0.3), inset 0 -8px 8px -7px rgba(245, 143, 228, 0.3);
 }
+
+.kneuron-sort-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #962783;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    margin-left: -4px;
+    margin-right: 8px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.kneuron-sort-warning-popup {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+    top: 28px;
+    left: -10px;
+}
 `;
 injectCSS(css);
 
@@ -249,10 +282,27 @@ function fixScrollerPool(force) {
         if (activeItem) {
             activeItem.scrollIntoView({ block: 'center', behavior: 'instant' });
         }
+
+        if (!wrapper._kneuronDupWatcher) {
+            wrapper._kneuronDupWatcher = true;
+            new MutationObserver(() => {
+                const seen = new Set();
+                wrapper.querySelectorAll('.vue-recycle-scroller__item-view').forEach(item => {
+                    const navItem = item.querySelector('[id^=object-li-object_], [id^=role-object-nav-object_]');
+                    const id = navItem?.id;
+                    if (id && seen.has(id)) {
+                        item.style.display = 'none';
+                    } else if (id) {
+                        seen.add(id);
+                    }
+                });
+            }).observe(wrapper, { childList: true });
+        }
     }, 200);
 }
 
 let tableSortingEnabled = getSettings().tableSorting !== 'false';
+
 
 function sortTables() {
     if (!tableSortingEnabled) return;
@@ -793,6 +843,46 @@ function addTablesFilter() {
             });
 
             tablesTitle.appendChild(toggleButton);
+
+            if (tableSortingEnabled) {
+                const warningContainer = document.createElement('span');
+                warningContainer.style.position = 'relative';
+                warningContainer.style.display = 'inline-block';
+                warningContainer.style.verticalAlign = 'middle';
+
+                const warningIndicator = document.createElement('span');
+                warningIndicator.className = 'kneuron-sort-warning';
+                warningIndicator.textContent = '!';
+                warningIndicator.title = 'Drag and drop disabled';
+                warningContainer.appendChild(warningIndicator);
+
+                warningIndicator.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const existing = warningContainer.querySelector('.kneuron-sort-warning-popup');
+                    if (existing) {
+                        existing.remove();
+                        return;
+                    }
+
+                    const popup = document.createElement('div');
+                    popup.className = 'kneuron-sort-warning-popup';
+                    popup.textContent = 'Drag and drop reordering is disabled while alphabetical sorting is active.';
+                    warningContainer.appendChild(popup);
+
+                    setTimeout(() => {
+                        document.addEventListener('click', function closePopup(ev) {
+                            if (!ev.target.closest('.kneuron-sort-warning')) {
+                                popup.remove();
+                                document.removeEventListener('click', closePopup);
+                            }
+                        });
+                    }, 0);
+                });
+
+                tablesTitle.appendChild(warningContainer);
+            }
         }
         tablesTitle.appendChild(searchInput);
     }
