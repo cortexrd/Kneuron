@@ -32,11 +32,11 @@ const css = `
    height: 30em;
 }
 
-#objects-nav .vue-recycle-scroller__item-view:not(.draggable-mirror) {
+#objects-nav.kneuron-dense .vue-recycle-scroller__item-view:not(.draggable-mirror) {
     transform: none !important;
     position: relative !important;
 }
-#objects-nav .vue-recycle-scroller__item-view.kneuron-dupe-hide {
+#objects-nav.kneuron-dense .vue-recycle-scroller__item-view.kneuron-dupe-hide {
     max-height: 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
@@ -168,18 +168,16 @@ div.kn-view .kn-table-cell.truncate-cell span {
 }
 
 .kneuron-sort-warning-popup {
-    position: absolute;
+    position: fixed;
     background: white;
     border: 1px solid #ccc;
     border-radius: 8px;
     padding: 10px 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 1000;
+    z-index: 2147483647;
     font-size: 13px;
     color: #333;
     white-space: nowrap;
-    top: 28px;
-    left: -10px;
 }
 `;
 injectCSS(css);
@@ -217,7 +215,23 @@ function applyVerticalDensity(level) {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = densityCSS;
-    setTimeout(() => fixScrollerPool(true), 200);
+    const objectsNav = document.querySelector('#objects-nav');
+    const sorting = getSettings().tableSorting !== 'false';
+    const needsOverride = level !== 'normal' || sorting;
+    if (objectsNav) objectsNav.classList.toggle('kneuron-dense', needsOverride);
+    if (level === 'normal' && !sorting) {
+        const fixStyle = document.getElementById('kneuron-scroller-fix');
+        if (fixStyle) fixStyle.textContent = '';
+        const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
+        if (wrapper) {
+            wrapper.querySelectorAll('.vue-recycle-scroller__item-view').forEach(item => {
+                item.style.display = '';
+                item.classList.remove('kneuron-dupe-hide');
+            });
+        }
+    } else {
+        setTimeout(() => fixScrollerPool(true), 200);
+    }
 }
 applyVerticalDensity(getSettings().verticalDensity || 'normal');
 
@@ -246,6 +260,8 @@ function getViewType() {
 }
 
 function fixScrollerPool(force) {
+    const objectsNav = document.querySelector('#objects-nav');
+    if (objectsNav && !objectsNav.classList.contains('kneuron-dense')) return;
     const wrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
     if (!wrapper) return;
     if (fixInProgress) return;
@@ -712,6 +728,18 @@ async function reduceLists(selector) {
 }
 
 function addTablesFilter() {
+    const objectsNav = document.querySelector('#objects-nav');
+    if (objectsNav) {
+        const density = getSettings().verticalDensity || 'normal';
+        const needsDense = density !== 'normal' || tableSortingEnabled;
+        objectsNav.classList.toggle('kneuron-dense', needsDense);
+        if (needsDense) {
+            fixScrollerPool(true);
+        }
+    } else {
+        sortTables();
+    }
+
     const tablesTitle = document.querySelector('#objects-nav h3.text-emphasis');
     if (tablesTitle && !document.querySelector('#incremental-filter-tables')) {
         const searchInput = document.createElement('input');
@@ -724,6 +752,7 @@ function addTablesFilter() {
         searchInput.style.height = '35px';
         searchInput.style.width = '140px';
         searchInput.id = 'incremental-filter-tables';
+        searchInput.autocomplete = 'off';
 
         let currentFocusIndex = 0;
         let currentSelectionIndex = -1;
@@ -764,7 +793,28 @@ function addTablesFilter() {
 
             searchEmpty = e.target.value === "";
             if (tableScroller) tableScroller.classList.toggle('kneuron-filtering', !searchEmpty);
-            if (searchEmpty) stopFilterObserver(); else startFilterObserver();
+            const objectsNav = document.querySelector('#objects-nav');
+            if (objectsNav) {
+                const density = getSettings().verticalDensity || 'normal';
+                const sorting = getSettings().tableSorting !== 'false';
+                const needsOverride = density !== 'normal' || sorting || !searchEmpty;
+                const hadOverride = objectsNav.classList.contains('kneuron-dense');
+                objectsNav.classList.toggle('kneuron-dense', needsOverride);
+                if (needsOverride && !hadOverride) {
+                    fixScrollerPool(true);
+                } else if (!needsOverride && hadOverride) {
+                    const fixStyle = document.getElementById('kneuron-scroller-fix');
+                    if (fixStyle) fixStyle.textContent = '';
+                    const wrapper = objectsNav.querySelector('.vue-recycle-scroller__item-wrapper');
+                    if (wrapper) {
+                        wrapper.querySelectorAll('.vue-recycle-scroller__item-view').forEach(item => {
+                            item.style.display = '';
+                            item.classList.remove('kneuron-dupe-hide');
+                        });
+                    }
+                }
+            }
+            if (searchEmpty) { stopFilterObserver(); sortTables(); } else startFilterObserver();
             const filteredListItems = getFilteredListItems(searchEmpty);
 
             const sampleItem = filteredListItems[0] || document.querySelector('#objects-nav .nav-item');
@@ -853,7 +903,7 @@ function addTablesFilter() {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    const existing = warningContainer.querySelector('.kneuron-sort-warning-popup');
+                    const existing = document.body.querySelector('.kneuron-sort-warning-popup');
                     if (existing) {
                         existing.remove();
                         return;
@@ -862,7 +912,11 @@ function addTablesFilter() {
                     const popup = document.createElement('div');
                     popup.className = 'kneuron-sort-warning-popup';
                     popup.textContent = 'Drag and drop reordering is disabled while alphabetical sorting is active.';
-                    warningContainer.appendChild(popup);
+                    document.body.appendChild(popup);
+
+                    const rect = warningIndicator.getBoundingClientRect();
+                    popup.style.top = (rect.bottom + 6) + 'px';
+                    popup.style.left = rect.left + 'px';
 
                     setTimeout(() => {
                         document.addEventListener('click', function closePopup(ev) {
@@ -882,6 +936,8 @@ function addTablesFilter() {
         const scrollerWrapper = document.querySelector('#objects-nav .vue-recycle-scroller__item-wrapper');
         if (scrollerWrapper) {
             function hideDuplicates() {
+                const nav = document.querySelector('#objects-nav');
+                if (!nav || !nav.classList.contains('kneuron-dense')) return;
                 const seen = new Map();
                 const items = scrollerWrapper.querySelectorAll('.vue-recycle-scroller__item-view:not(.draggable-mirror)');
                 for (const item of items) {
@@ -908,32 +964,8 @@ function addTablesFilter() {
                 }
             }
 
-            let dragging = false;
-            new MutationObserver((mutations) => {
-                for (const m of mutations) {
-                    for (const node of m.addedNodes) {
-                        if (node.nodeType === 1 && node.classList.contains('draggable-mirror'))
-                            dragging = true;
-                    }
-                    for (const node of m.removedNodes) {
-                        if (node.nodeType === 1 && node.classList.contains('draggable-mirror')) {
-                            dragging = false;
-                            setTimeout(() => {
-                                const radios = [...document.querySelectorAll('input[name="kneuron-density"]')];
-                                const currentIdx = radios.findIndex(r => r.checked);
-                                const adjacentIdx = currentIdx > 0 ? currentIdx - 1 : 1;
-                                if (radios[adjacentIdx] && radios[currentIdx]) {
-                                    radios[adjacentIdx].click();
-                                    setTimeout(() => {
-                                        radios[currentIdx].click();
-                                        setTimeout(hideDuplicates, 50);
-                                    }, 50);
-                                }
-                            }, 100);
-                        }
-                    }
-                }
-                if (!dragging) hideDuplicates();
+            new MutationObserver(() => {
+                hideDuplicates();
             }).observe(scrollerWrapper, { childList: true });
         }
     }
@@ -1655,6 +1687,51 @@ function addPageSortToggle() {
     });
 
     filterInput.parentNode.insertBefore(toggleButton, filterInput);
+
+    if (pageSortingEnabled) {
+        const warningContainer = document.createElement('span');
+        warningContainer.style.position = 'relative';
+        warningContainer.style.display = 'inline-block';
+        warningContainer.style.verticalAlign = 'middle';
+        warningContainer.style.marginRight = '8px';
+
+        const warningIndicator = document.createElement('span');
+        warningIndicator.className = 'kneuron-sort-warning';
+        warningIndicator.textContent = '!';
+        warningIndicator.title = 'Drag and drop disabled';
+        warningContainer.appendChild(warningIndicator);
+
+        warningIndicator.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const existing = document.body.querySelector('.kneuron-sort-warning-popup');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            const popup = document.createElement('div');
+            popup.className = 'kneuron-sort-warning-popup';
+            popup.textContent = 'Drag and drop reordering is disabled while alphabetical sorting is active.';
+            document.body.appendChild(popup);
+
+            const rect = warningIndicator.getBoundingClientRect();
+            popup.style.top = (rect.bottom + 6) + 'px';
+            popup.style.left = rect.left + 'px';
+
+            setTimeout(() => {
+                document.addEventListener('click', function closePopup(ev) {
+                    if (!ev.target.closest('.kneuron-sort-warning')) {
+                        popup.remove();
+                        document.removeEventListener('click', closePopup);
+                    }
+                });
+            }, 0);
+        });
+
+        filterInput.parentNode.insertBefore(warningContainer, filterInput);
+    }
 }
 //Sort pages alphabetically - END
 
@@ -1740,8 +1817,14 @@ function addDensityControl() {
         radio.style.cssText = 'margin: 0 !important; cursor: pointer;';
 
         radio.addEventListener('change', () => {
+            const prevDensity = getSettings().verticalDensity || 'normal';
             setSetting('verticalDensity', lvl.value);
+            if ((prevDensity === 'normal') !== (lvl.value === 'normal')) {
+                location.reload();
+                return;
+            }
             applyVerticalDensity(lvl.value);
+            densityWarning.style.display = lvl.value !== 'normal' ? '' : 'none';
             const filterInput = document.querySelector('#incremental-filter-tables');
             if (filterInput && filterInput.value) {
                 filterInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1751,6 +1834,43 @@ function addDensityControl() {
         radioLabel.appendChild(radio);
         radioLabel.appendChild(document.createTextNode(lvl.label));
         densityContainer.appendChild(radioLabel);
+    });
+
+    const densityWarning = document.createElement('span');
+    densityWarning.className = 'kneuron-sort-warning';
+    densityWarning.textContent = '!';
+    densityWarning.title = 'Drag and drop disabled';
+    densityWarning.style.display = savedDensity !== 'normal' ? '' : 'none';
+    densityWarning.style.marginLeft = '4px';
+    densityContainer.appendChild(densityWarning);
+
+    densityWarning.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const existing = document.body.querySelector('.kneuron-sort-warning-popup');
+        if (existing) {
+            existing.remove();
+            return;
+        }
+
+        const popup = document.createElement('div');
+        popup.className = 'kneuron-sort-warning-popup';
+        popup.textContent = 'Drag and drop reordering is disabled at Medium and High density.';
+        document.body.appendChild(popup);
+
+        const rect = densityWarning.getBoundingClientRect();
+        popup.style.top = (rect.bottom + 6) + 'px';
+        popup.style.left = rect.left + 'px';
+
+        setTimeout(() => {
+            document.addEventListener('click', function closePopup(ev) {
+                if (!ev.target.closest('.kneuron-sort-warning')) {
+                    popup.remove();
+                    document.removeEventListener('click', closePopup);
+                }
+            });
+        }, 0);
     });
 
     topbarLeft.appendChild(densityContainer);

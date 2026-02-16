@@ -15,14 +15,30 @@ The left sidebar tables list uses a `vue-recycle-scroller` which virtualizes ren
 - Only renders a **pool** of DOM elements (visible items + buffer), not all items
 - Pool size = `ceil(viewportHeight / itemSize) + buffer`
 
-### What Kneuron overrides (static CSS)
+### What Kneuron overrides (conditional CSS)
 ```css
-#objects-nav .vue-recycle-scroller__item-view {
+#objects-nav.kneuron-dense .vue-recycle-scroller__item-view {
     transform: none !important;
     position: relative !important;
 }
 ```
-This disables virtual positioning so items stack naturally in DOM order. Required for the incremental filter to work (hiding items with `display:none` and having remaining items fill the space).
+This disables virtual positioning so items stack naturally in DOM order. Required for density, sorting, and filtering to work (hiding items with `display:none` and having remaining items fill the space).
+
+**Conditional on `.kneuron-dense`**: The override is only active when `#objects-nav` has the `kneuron-dense` class. At Low density with no sorting and no active filter, the native scroller operates unmodified.
+
+### The `kneuron-dense` class — single source of truth
+
+The `kneuron-dense` class on `#objects-nav` controls whether scroller overrides (CSS transform removal, pool fixing, duplicate hiding) are active. It is toggled on when **any** of these conditions is true:
+- Vertical density is Med or High (`density !== 'normal'`)
+- Table sorting is enabled (`tableSorting !== 'false'`)
+- Table filter is active (non-empty filter input)
+
+This class is toggled in three places:
+1. `applyVerticalDensity()` — on page load and density radio change
+2. `addTablesFilter()` — when tables nav appears (navigation back to Data)
+3. Filter `input` handler — dynamically when typing/clearing the filter
+
+Both `fixScrollerPool()` and `hideDuplicates()` use `kneuron-dense` as their guard.
 
 ### The density + scroller interaction problem
 
@@ -98,6 +114,34 @@ Optional alphabetical sorting of tables in the left nav, toggled via an ABC/abc 
 
 ---
 
+## Drag and Drop Blocking
+
+### `drag-block-page.js` — page world injection
+
+Runs in the **page world** (not the extension isolated world) before Knack loads, via `drag-block-inject.js`. Reads settings from localStorage once at load time. Registers capture-phase event listeners that intercept Knack's drag handlers.
+
+**Tables** — blocked when:
+- Density is Med or High (static, read at load)
+- Table sorting is enabled (static, read at load)
+- Table filter is active (dynamic, checked live via `#incremental-filter-tables` input value)
+
+**Pages** — blocked when page sorting is enabled (static, read at load).
+
+**Click-through for filtering**: Mousedown is only blocked for static conditions (density/sorting). Filter-based blocking only happens on `mousemove` (after 3px threshold) and `dragstart`. This allows clicks on filtered table entries to work while still preventing drag reordering.
+
+**Page reload on density crossing**: Because `drag-block-page.js` reads density once at load, switching between Low and Med/High requires a `location.reload()` to pick up the new blocking rules. This reload is triggered in the density radio `change` handler only when crossing the Low ↔ Med/High boundary.
+
+### Warning indicators (!)
+
+Purple circle `!` icons with click-to-show popups appear in three places when DnD is disabled:
+1. **Tables header** — next to sort toggle, when table sorting is active
+2. **Pages header** — next to filter input, when page sorting is active
+3. **Density radio buttons** — after the High radio, when Med or High density is selected
+
+All use `.kneuron-sort-warning` (icon) and `.kneuron-sort-warning-popup` (popup) CSS classes. Popups are appended to `document.body` with `position: fixed` and `z-index: 2147483647` to avoid being clipped by the left panel or hidden behind the splitter/right pane.
+
+---
+
 ## Row Hover Highlight
 
 ### The sticky column challenge
@@ -167,5 +211,5 @@ All source files use CRLF line endings. The `Edit` tool may fail on exact string
 
 The `zip` command is not available in bash on this Windows environment. Use PowerShell:
 ```powershell
-powershell -Command "Remove-Item Kneuron.zip -ErrorAction SilentlyContinue; Compress-Archive -Path Kneuron.js, manifest.json, popup.html, page-script.js, Kneuron-Icon128.png, Kneuron-Icon48.png, Kneuron-Icon16.png -DestinationPath Kneuron.zip"
+powershell -Command "Remove-Item Kneuron.zip -ErrorAction SilentlyContinue; Compress-Archive -Path Kneuron.js, manifest.json, popup.html, page-script.js, drag-block-page.js, drag-block-inject.js, Kneuron-Icon128.png, Kneuron-Icon48.png, Kneuron-Icon16.png -DestinationPath Kneuron.zip"
 ```
