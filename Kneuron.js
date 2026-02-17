@@ -452,6 +452,60 @@ genericObserver.observe(document.body, {
     subtree: true
 });
 
+function waitForSpinner(timeout = 5000) {
+    return new Promise(resolve => {
+        const spinner = document.querySelector('.kn-spinner, .kn-loading, .loading-spinner, [class*="spinner"], [class*="Spinner"]');
+        if (!spinner) return resolve();
+        const timeoutId = setTimeout(() => { observer.disconnect(); resolve(); }, timeout);
+        const observer = new MutationObserver(() => {
+            if (!document.querySelector('.kn-spinner, .kn-loading, .loading-spinner, [class*="spinner"], [class*="Spinner"]')) {
+                clearTimeout(timeoutId);
+                observer.disconnect();
+                resolve();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+}
+
+async function navigateToApiEditor(type) {
+    const targetSuffix = `/settings/api/${type}`;
+
+    if (window.location.pathname.endsWith(targetSuffix)) return;
+
+    // If the target tab is already visible, just click it
+    let tabLink = document.querySelector(`a[href$="${targetSuffix}"]:not(#kneuron-api-buttons > a)`);
+    if (tabLink) { tabLink.click(); return; }
+
+    // If API & Code link is visible, click it then wait for tab
+    let apiCodeLink = document.querySelector('a[href$="/settings/api"]:not(#kneuron-api-buttons > a)');
+    if (apiCodeLink) {
+        apiCodeLink.click();
+        await waitForSpinner();
+        try {
+            tabLink = await waitForElement(`a[href$="${targetSuffix}"]`);
+            tabLink.click();
+        } catch (e) { }
+        return;
+    }
+
+    // Start from Settings sidebar
+    const settingsLink = document.querySelector('#sidebar-nav li:nth-child(5) a');
+    if (settingsLink) settingsLink.click();
+    await waitForSpinner();
+
+    try {
+        apiCodeLink = await waitForElement('a[href$="/settings/api"]');
+        apiCodeLink.click();
+    } catch (e) { return; }
+    await waitForSpinner();
+
+    try {
+        tabLink = await waitForElement(`a[href$="${targetSuffix}"]`);
+        tabLink.click();
+    } catch (e) { }
+}
+
 async function waitForElement(selector, timeout = 10000) {
     return new Promise((resolve, reject) => {
         if (document.querySelector(selector)) {
@@ -650,12 +704,10 @@ document.addEventListener('keydown', async function (event) {
                     || document.querySelector('[data-testid="save-code-btn"]')
                     || document.querySelector('input[type="search"]');
             }
-        } else if (keyPressed === 'KeyJ' || keyPressed === 'KeyC') {
+        } else if (keyPressed === 'KeyC') {
             event.preventDefault();
-            const pathParts = window.location.pathname.split('/').filter(Boolean);
-            const appBase = '/' + pathParts.slice(0, 2).join('/');
-            const target = keyPressed === 'KeyJ' ? '/settings/api/javascript' : '/settings/api/css';
-            window.location.href = appBase + target;
+            const onJs = window.location.pathname.endsWith('/settings/api/javascript');
+            navigateToApiEditor(onJs ? 'css' : 'javascript');
             return;
         } else if (keyPressed === 'KeyM') {
             toggleDividerMinMax();
@@ -1906,13 +1958,14 @@ function addDensityControl() {
     apiButtons.id = 'kneuron-api-buttons';
     apiButtons.style.cssText = 'margin-left: 18px; display: flex; align-items: center; gap: 6px; height: 36px;';
 
-    [{ label: 'JS', path: '/settings/api/javascript', key: 'Alt+J' },
-     { label: 'CSS', path: '/settings/api/css', key: 'Alt+C' }].forEach(btn => {
+    [{ label: 'JS', type: 'javascript', path: '/settings/api/javascript' },
+     { label: 'CSS', type: 'css', path: '/settings/api/css' }].forEach(btn => {
         const a = document.createElement('a');
         a.href = appBase + btn.path;
         a.textContent = btn.label;
-        a.title = btn.key;
+        a.title = 'Alt+C toggles JS/CSS';
         a.style.cssText = 'padding: 2px 8px; font-size: 12px; font-weight: 600; border: 1px solid rgb(var(--content-tertiary)); border-radius: 4px; color: rgb(var(--content-default)); text-decoration: none; cursor: pointer; line-height: 1.4;';
+        a.addEventListener('click', (e) => { e.preventDefault(); navigateToApiEditor(btn.type); });
         a.addEventListener('mouseenter', () => a.style.backgroundColor = 'rgba(var(--content-default), 0.1)');
         a.addEventListener('mouseleave', () => a.style.backgroundColor = '');
         apiButtons.appendChild(a);
