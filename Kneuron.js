@@ -650,6 +650,13 @@ document.addEventListener('keydown', async function (event) {
                     || document.querySelector('[data-testid="save-code-btn"]')
                     || document.querySelector('input[type="search"]');
             }
+        } else if (keyPressed === 'KeyJ' || keyPressed === 'KeyC') {
+            event.preventDefault();
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            const appBase = '/' + pathParts.slice(0, 2).join('/');
+            const target = keyPressed === 'KeyJ' ? '/settings/api/javascript' : '/settings/api/css';
+            window.location.href = appBase + target;
+            return;
         } else if (keyPressed === 'KeyM') {
             toggleDividerMinMax();
         }
@@ -1891,6 +1898,27 @@ function addDensityControl() {
     });
 
     topbarLeft.appendChild(densityContainer);
+
+    // API editor quick-nav buttons (JS / CSS)
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const appBase = '/' + pathParts.slice(0, 2).join('/');
+    const apiButtons = document.createElement('span');
+    apiButtons.id = 'kneuron-api-buttons';
+    apiButtons.style.cssText = 'margin-left: 18px; display: flex; align-items: center; gap: 6px; height: 36px;';
+
+    [{ label: 'JS', path: '/settings/api/javascript', key: 'Alt+J' },
+     { label: 'CSS', path: '/settings/api/css', key: 'Alt+C' }].forEach(btn => {
+        const a = document.createElement('a');
+        a.href = appBase + btn.path;
+        a.textContent = btn.label;
+        a.title = btn.key;
+        a.style.cssText = 'padding: 2px 8px; font-size: 12px; font-weight: 600; border: 1px solid rgb(var(--content-tertiary)); border-radius: 4px; color: rgb(var(--content-default)); text-decoration: none; cursor: pointer; line-height: 1.4;';
+        a.addEventListener('mouseenter', () => a.style.backgroundColor = 'rgba(var(--content-default), 0.1)');
+        a.addEventListener('mouseleave', () => a.style.backgroundColor = '');
+        apiButtons.appendChild(a);
+    });
+
+    topbarLeft.appendChild(apiButtons);
 }
 
 //Sticky columns for Records table
