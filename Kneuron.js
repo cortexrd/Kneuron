@@ -490,7 +490,7 @@ async function navigateToApiEditor(type) {
     }
 
     // Start from Settings sidebar
-    const settingsLink = document.querySelector('#sidebar-nav li:nth-child(5) a');
+    const settingsLink = [...document.querySelectorAll('#sidebar-nav a')].find(a => a.textContent.trim() === 'Settings');
     if (settingsLink) settingsLink.click();
     await waitForSpinner();
 
@@ -596,8 +596,6 @@ document.addEventListener('keydown', async function (event) {
             || document.querySelector('.kn-popover .knButton[type=submit]')
             || document.querySelector('[data-cy=save-filters]')
             || document.querySelector('[data-cy=save]')
-            || document.querySelector('[data-cy=save-view-add]')
-            || document.querySelector('[data-cy=add-view-wizard-continue]')
             || document.querySelector('a.save')
             || document.querySelector('.kn-input[type=submit]');
 
