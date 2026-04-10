@@ -141,18 +141,18 @@ div.kn-view .kn-table-cell.truncate-cell span {
 .kn-table-element tbody tr:hover {
     box-shadow: inset 0 0 8px 1px rgba(245, 143, 228, 0.3);
 }
-.kn-table-element tbody tr:hover td:not(.editable) {
+.kn-table-element tbody tr:hover td:not(.editable):not(.cell-highlight) {
     background-color: rgba(255, 209, 248, 0.06) !important;
 }
-.kn-table-element tbody tr:hover td.kneuron-sticky:not(.editable) {
+.kn-table-element tbody tr:hover td.kneuron-sticky:not(.editable):not(.cell-highlight) {
     background-color: #fffcfe !important;
     box-shadow: inset 0 8px 8px -7px rgba(245, 143, 228, 0.3), inset 0 -8px 8px -7px rgba(245, 143, 228, 0.3);
 }
-.kn-table-element tbody tr:hover td.kneuron-sticky.editable {
+.kn-table-element tbody tr:hover td.kneuron-sticky.editable:not(.cell-highlight) {
     background-color: #fffcfe !important;
     box-shadow: inset 0 8px 8px -7px rgba(245, 143, 228, 0.3), inset 0 -8px 8px -7px rgba(245, 143, 228, 0.3);
 }
-.kn-table-element tbody tr:hover td.kneuron-sticky.editable:hover {
+.kn-table-element tbody tr:hover td.kneuron-sticky.editable:not(.cell-highlight):hover {
     background-color: rgb(var(--brand-50)) !important;
 }
 
