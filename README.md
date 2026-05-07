@@ -50,5 +50,5 @@ If you encounter any issues or have suggestions for improvements, please:
 
 <div align="center">
   <p>Made with ❤️ for the Knack community</p>
-  <p>Normand Defayette - Cortex R&D Inc. - November 2024</p>
+  <p>Normand Defayette - Cortex R&D Inc. - May 2026</p>
 </div>

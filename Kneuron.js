@@ -634,7 +634,7 @@ document.addEventListener('keydown', async function (event) {
             || document.querySelector('.modal_close')
             || document.querySelector('a.cancel')
             || document.querySelector('.header_close')
-            || document.querySelector('a:has(.icon-close)');
+            || document.querySelector('a:has(.icon-close):not(.delete-link-button)');
     } else if (event.altKey) {
         if (keyPressed.includes('Digit')) {
             keyPressed = keyPressed.replace('Digit', '');
